@@ -1,0 +1,1317 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=device-width, initial-scale=1.0">
+  <title>FBR Digital Invoicing Suite 2026</title>
+  <link rel="stylesheet" href="style.css">
+  <script>
+    // Instantly apply theme from LocalStorage on launch to eliminate transitions layout flash
+    (function () {
+      const savedTheme = localStorage.getItem('app-theme') || 'midnight-abyss';
+      document.documentElement.setAttribute('data-theme', savedTheme);
+    })();
+  </script>
+</head>
+
+<body>
+
+  <div class="app-container">
+
+    <!-- ==========================================
+         SIDEBAR NAVIGATION
+         ========================================== -->
+    <aside class="sidebar">
+      <div class="sidebar-logo">
+        <img src="app_logo.png" alt="App Logo" class="logo-icon" style="object-fit: contain; background: none; box-shadow: none;">
+        <div class="logo-details">
+          <div class="logo-text">FBR INVOICE</div>
+          <div class="logo-sub">Compliance 2026</div>
+        </div>
+      </div>
+
+      <nav class="nav-menu">
+        <div class="nav-item active" id="nav-dashboard" onclick="switchPanel('dashboard')">
+          <svg viewBox="0 0 24 24">
+            <path
+              d="M3.75 6A2.25 2.25 0 016 3.75h2.25A2.25 2.25 0 0110.5 6v2.25a2.25 2.25 0 01-2.25 2.25H6a2.25 2.25 0 01-2.25-2.25V6zM3.75 15.75A2.25 2.25 0 016 13.5h2.25a2.25 2.25 0 012.25 2.25V18a2.25 2.25 0 01-2.25 2.25H6A2.25 2.25 0 013.75 18v-2.25zM13.5 6a2.25 2.25 0 012.25-2.25H18A2.25 2.25 0 0120.25 6v2.25A2.25 2.25 0 0118 10.5h-2.25a2.25 2.25 0 01-2.25-2.25V6zM13.5 15.75a2.25 2.25 0 012.25-2.25H18a2.25 2.25 0 012.25 2.25V18A2.25 2.25 0 0118 20.25h-2.25A2.25 2.25 0 0113.5 18v-2.25z" />
+          </svg>
+          <span class="nav-text">Dashboard</span>
+        </div>
+        <div class="nav-item" id="nav-invoice" onclick="switchPanel('invoice')">
+          <svg viewBox="0 0 24 24">
+            <path
+              d="M19.5 14.25v-2.625a3.375 3.375 0 00-3.375-3.375h-1.5A1.125 1.125 0 0113.5 7.125v-1.5a3.375 3.375 0 00-3.375-3.375H8.25m0 12.75h7.5m-7.5 3H12M10.5 2.25H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 00-9-9z" />
+          </svg>
+          <span class="nav-text">Create Invoice</span>
+        </div>
+        <div class="nav-item" id="nav-history" onclick="switchPanel('history')">
+          <svg viewBox="0 0 24 24">
+            <path d="M12 6v6h4.5m4.5 0a9 9 0 11-18 0 9 9 0 0118 0z" />
+          </svg>
+          <span class="nav-text">History Logs</span>
+        </div>
+
+        <div class="setup-header">Setup Modules</div>
+
+        <div class="nav-item" id="nav-customers" onclick="switchPanel('customers')">
+          <svg viewBox="0 0 24 24">
+            <path
+              d="M15.75 6a3.75 3.75 0 11-7.5 0 3.75 3.75 0 017.5 0zM4.501 20.118a7.5 7.5 0 0114.998 0A17.933 17.933 0 0112 21.75c-2.676 0-5.216-.584-7.499-1.632z" />
+          </svg>
+          <span class="nav-text">Customers</span>
+        </div>
+        <div class="nav-item" id="nav-items" onclick="switchPanel('items')">
+          <svg viewBox="0 0 24 24">
+            <path
+              d="M20.25 7.5l-.625 10.632a2.25 2.25 0 01-2.247 2.118H6.622a2.25 2.25 0 01-2.247-2.118L3.75 7.5M10 11.25h4M3.375 7.5h17.25c.621 0 1.125-.504 1.125-1.125v-1.5c0-.621-.504-1.125-1.125-1.125H3.375c-.621 0-1.125.504-1.125 1.125v1.5c0 .621.504 1.125 1.125 1.125z" />
+          </svg>
+          <span class="nav-text">List Of Items</span>
+        </div>
+        <div class="nav-item" id="nav-taxes" onclick="switchPanel('taxes')">
+          <svg viewBox="0 0 24 24">
+            <path
+              d="M12 6v12m-3-2.818l.879.659c1.171.879 3.07.879 4.242 0 1.172-.879 1.172-2.303 0-3.182C13.5 12.22 12 11.75 12 11.75s-1.5-.47-2.121-.909c-1.172-.879-1.172-2.303 0-3.182 1.171-.879 3.07-.879 4.242 0 .33.247.587.567.766.909M3 12a9 9 0 1118 0 9 9 0 01-18 0z" />
+          </svg>
+          <span class="nav-text">Taxes Setup</span>
+        </div>
+        <div class="nav-item" id="nav-settings" onclick="switchPanel('settings')">
+          <svg viewBox="0 0 24 24">
+            <path
+              d="M9.594 3.94c.09-.542.56-.94 1.11-.94h2.593c.55 0 1.02.398 1.11.94l.213 1.281c.063.374.313.686.645.87.074.04.147.083.22.127.324.196.72.257 1.075.124l1.217-.456a1.125 1.125 0 011.37.49l1.296 2.247a1.125 1.125 0 01-.26 1.43l-1.003.828c-.293.241-.438.613-.43.992a7.723 7.723 0 010 .255c-.008.378.137.75.43.991l1.004.827c.424.35.534.954.26 1.43l-1.297 2.247a1.125 1.125 0 01-1.369.491l-1.217-.456c-.355-.133-.75-.072-1.076.124a6.57 6.57 0 01-.22.128c-.331.183-.581.495-.644.869l-.213 1.28c-.09.543-.56.941-1.11.941h-2.594c-.55 0-1.02-.398-1.11-.94l-.213-1.281c-.062-.374-.312-.686-.644-.87a6.52 6.52 0 01-.22-.127c-.325-.196-.72-.257-1.076-.124l-1.217.456a1.125 1.125 0 01-1.369-.49l-1.297-2.247a1.125 1.125 0 01.26-1.43l1.004-.827c.292-.24.437-.613.43-.992a6.932 6.932 0 010-.255c.007-.378-.138-.75-.43-.991l-1.004-.827a1.125 1.125 0 01-.26-1.43l1.297-2.247a1.125 1.125 0 011.37-.491l1.216.456c.356.133.751.072 1.076-.124.072-.044.146-.087.22-.128.332-.183.582-.495.645-.869l.214-1.28z" />
+            <path d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+          </svg>
+          <span class="nav-text">Company Profile</span>
+        </div>
+        <div class="nav-item" id="nav-reports" onclick="toggleReportsSubmenu()">
+          <svg viewBox="0 0 24 24" style="width: 20px; height: 20px; fill: none; stroke: currentColor; stroke-width: 2;">
+            <path d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+          <span class="nav-text">Reports</span>
+          <svg id="reports-chevron" viewBox="0 0 24 24" style="width: 14px; height: 14px; fill: none; stroke: currentColor; stroke-width: 2; margin-left: auto; transition: transform 0.2s;">
+            <path d="M19 9l-7 7-7-7" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+        </div>
+        <div id="reports-submenu" style="display: none; flex-direction: column; gap: 4px;">
+          <div class="nav-item sub-item" id="nav-invoice-printing" onclick="switchPanel('invoice-printing')">
+            <span class="nav-text">Invoice Printing</span>
+          </div>
+          <div class="nav-item sub-item" id="nav-sale-details" onclick="switchPanel('sale-details')">
+            <span class="nav-text">Sale Invoice Details</span>
+          </div>
+        </div>
+      </nav>
+
+      <div class="sidebar-footer">
+        <div class="env-badge" id="sidebar-env-badge">
+          <span class="env-dot"></span>
+          <span id="sidebar-env-text">FBR Sandbox</span>
+        </div>
+      </div>
+    </aside>
+
+    <!-- ==========================================
+         MAIN CONTENT AREA
+         ========================================== -->
+    <main class="main-content">
+
+      <!-- 1. DASHBOARD PANEL -->
+      <section class="content-panel active" id="panel-dashboard">
+        <div class="panel-header">
+          <div class="panel-title">
+            <h1 id="dashboard-welcome">FBR Invoicing Suite</h1>
+            <p>Pakistan Real-time Supply Chain Integration Dashboard</p>
+          </div>
+          <button class="btn btn-primary" onclick="switchPanel('invoice')">
+            + New Invoice
+          </button>
+        </div>
+
+        <!-- Dashboard Stat Cards -->
+        <div class="dashboard-stats">
+          <div class="stat-card">
+            <div class="stat-card-icon">⚡</div>
+            <div class="stat-card-label">Total Reported</div>
+            <div class="stat-card-value" id="stat-total-invoices">0</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-card-icon" style="color: var(--success); background-color: var(--success-glow);">✅</div>
+            <div class="stat-card-label">Compliance Success</div>
+            <div class="stat-card-value" id="stat-success-rate">100%</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-card-icon" style="color: var(--warning); background-color: rgba(245, 158, 11, 0.08);">💵
+            </div>
+            <div class="stat-card-label">Total Tax Collected</div>
+            <div class="stat-card-value" id="stat-total-tax">PKR 0</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-card-icon">🔒</div>
+            <div class="stat-card-label">Gateway Status</div>
+            <div class="stat-card-value" id="stat-gateway-status" style="font-size: 16px; color: var(--success);">
+              Connected</div>
+          </div>
+        </div>
+
+        <!-- Dashboard Grid (Recent activity + Quick info) -->
+        <div class="dashboard-grid">
+          <div class="dashboard-card">
+            <div class="card-title">
+              <span>Recent Reported Invoices</span>
+              <button class="btn btn-secondary btn-sm" onclick="switchPanel('history')">View All</button>
+            </div>
+
+            <div class="history-table-wrapper" style="border: none;">
+              <table class="history-table">
+                <thead>
+                  <tr>
+                    <th>FBR Invoice ID</th>
+                    <th>Date</th>
+                    <th>Buyer NTN</th>
+                    <th>Total Value</th>
+                    <th>Status</th>
+                  </tr>
+                </thead>
+                <tbody id="dashboard-recent-tbody">
+                  <tr>
+                    <td colspan="5" style="text-align: center; color: var(--text-muted); padding: 32px 0;">
+                      No reported invoices yet. Write your first invoice now.
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+          <div class="dashboard-card">
+            <div class="card-title">FBR Compliance 2026 Info</div>
+            <div style="font-size: 13px; line-height: 1.6; color: var(--text-secondary);">
+              <p style="margin-bottom: 12px;">This application implements real-time digital invoice uploading to FBR
+                using <strong>DI API V1.12</strong> specifications.</p>
+              <div
+                style="background-color: var(--bg-input); padding: 12px; border-radius: var(--radius-md); border: 1px solid var(--border-color); margin-bottom: 12px;">
+                <span style="color: var(--accent-primary); font-weight: 700;">Rules Applied:</span>
+                <ul
+                  style="margin-left: 16px; margin-top: 6px; font-size: 12px; display: flex; flex-direction: column; gap: 4px;">
+                  <li>Standard Sales Tax computed.</li>
+                  <li>Further Tax (4%) applied to Unregistered Buyers.</li>
+                  <li>Receipt QR code sized exactly 1" x 1" (v2.0, 25x25).</li>
+                </ul>
+              </div>
+              <p style="font-size: 12px; color: var(--text-muted);">
+                Sandbox testing mode allows using 28 scenarios (SN001-SN028) to test diverse supply chain transactions.
+              </p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- 2. CREATE INVOICE PANEL -->
+      <section class="content-panel" id="panel-invoice">
+        <div class="panel-header">
+          <div class="panel-title">
+            <h1>Create FBR Digital Invoice</h1>
+            <p>Prepare, validate, and report real-time compliance invoices</p>
+          </div>
+          <button class="btn btn-secondary" onclick="resetInvoiceForm()">Clear Form</button>
+        </div>
+
+        <div class="settings-section">
+          <div class="settings-title">
+            <span>📝 Invoice Header & Buyer Details</span>
+          </div>
+
+          <div class="form-grid">
+            <!-- Invoice Info -->
+            <div class="form-group col-3">
+              <label class="form-label" for="invoice-type">Invoice Type *</label>
+              <select class="form-control" id="invoice-type" onchange="toggleRefInvoiceField()">
+                <option value="Sale Invoice">Sale Invoice</option>
+                <option value="Debit Note">Debit Note</option>
+              </select>
+            </div>
+
+            <div class="form-group col-3">
+              <label class="form-label" for="invoice-date">Invoice Date *</label>
+              <input class="form-control" type="date" id="invoice-date">
+            </div>
+
+            <div class="form-group col-3" id="group-ref-no">
+              <label class="form-label" for="invoice-ref-no">Invoice Reference No</label>
+              <input class="form-control" type="text" id="invoice-ref-no" placeholder="e.g. 0 or REF-1234">
+            </div>
+
+            <div class="form-group col-3" id="group-sandbox-scenario">
+              <label class="form-label" for="sandbox-scenario">Sandbox Scenario ID *</label>
+              <select class="form-control" id="sandbox-scenario" onchange="autoConfigureScenario()">
+                <option value="SN001">SN001: Goods at standard rate — registered buyer</option>
+                <option value="SN002">SN002: Goods at standard rate — unregistered buyer</option>
+                <option value="SN003">SN003: Steel Melting and Re-Rolling</option>
+                <option value="SN004">SN004: Sale by Ship Breakers</option>
+                <option value="SN005">SN005: Reduced rate sale</option>
+                <option value="SN006">SN006: Exempt goods sale</option>
+                <option value="SN007">SN007: Zero rated sale</option>
+                <option value="SN008">SN008: 3rd Schedule Goods</option>
+                <option value="SN009">SN009: Cotton Ginners (Textile Sector)</option>
+                <option value="SN010">SN010: Telecom services</option>
+                <option value="SN011">SN011: Toll Manufacturing (Steel sector)</option>
+                <option value="SN012">SN012: Petroleum Products</option>
+                <option value="SN013">SN013: Electricity Supply to Retailers</option>
+                <option value="SN014">SN014: Gas to CNG Stations</option>
+                <option value="SN015">SN015: Mobile Phones</option>
+                <option value="SN016">SN016: Processing / Conversion of Goods</option>
+                <option value="SN017">SN017: Goods (FED in ST Mode)</option>
+                <option value="SN018">SN018: Services (FED in ST Mode)</option>
+                <option value="SN019">SN019: Services rendered or provided</option>
+                <option value="SN020">SN020: Electric Vehicles</option>
+                <option value="SN021">SN021: Cement / Concrete Block</option>
+                <option value="SN022">SN022: Potassium Chlorate</option>
+                <option value="SN023">SN023: CNG Sales</option>
+                <option value="SN024">SN024: Goods as per SRO.297(I)/2023</option>
+                <option value="SN025">SN025: Non-Adjustable Supplies (Drugs, 8th Schedule)</option>
+                <option value="SN026">SN026: Retail — Goods at Standard Rate</option>
+                <option value="SN027">SN027: Retail — 3rd Schedule Goods</option>
+                <option value="SN028">SN028: Retail — Goods at Reduced Rate</option>
+              </select>
+            </div>
+
+            <!-- Buyer Details -->
+            <div class="form-group col-4">
+              <label class="form-label" for="invoice-party-select">Party / Customer Name *</label>
+              <select class="form-control" id="invoice-party-select" onchange="onInvoicePartySelectChange()">
+                <!-- Populated dynamically -->
+              </select>
+            </div>
+
+            <div class="form-group col-4">
+              <label class="form-label" for="buyer-ntn">Buyer NTN/CNIC</label>
+              <input class="form-control" type="text" id="buyer-ntn" readonly placeholder="Auto-populated"
+                style="background-color: var(--bg-secondary); color: var(--text-secondary);">
+            </div>
+
+            <div class="form-group col-4">
+              <label class="form-label" for="buyer-reg-type">Buyer Registration Type</label>
+              <input class="form-control" type="text" id="buyer-reg-type" readonly placeholder="Auto-populated"
+                style="background-color: var(--bg-secondary); color: var(--text-secondary);">
+            </div>
+
+            <div class="form-group col-8">
+              <label class="form-label" for="buyer-name">Buyer Business Name</label>
+              <input class="form-control" type="text" id="buyer-name" readonly placeholder="Auto-populated"
+                style="background-color: var(--bg-secondary); color: var(--text-secondary);">
+            </div>
+
+            <div class="form-group col-4">
+              <label class="form-label" for="buyer-province">Buyer Province</label>
+              <input class="form-control" type="text" id="buyer-province" readonly placeholder="Auto-populated"
+                style="background-color: var(--bg-secondary); color: var(--text-secondary);">
+            </div>
+
+            <div class="form-group col-12">
+              <label class="form-label" for="buyer-address">Buyer Registered Address</label>
+              <input class="form-control" type="text" id="buyer-address" readonly placeholder="Auto-populated"
+                style="background-color: var(--bg-secondary); color: var(--text-secondary);">
+            </div>
+          </div>
+        </div>
+
+        <!-- LINE ITEMS -->
+        <div class="invoice-section-title">
+          <span>📦 Invoice Line Items</span>
+          <button class="btn btn-secondary btn-sm" onclick="addInvoiceItemRow()">+ Add Item Row</button>
+        </div>
+
+        <div class="grid-wrapper">
+          <table class="items-table" id="items-grid-table">
+            <thead>
+              <tr>
+                <th style="width: 20%;">Product Description *</th>
+                <th style="width: 10%;">HS Code *</th>
+                <th style="width: 10%;">Sale Type *</th>
+                <th style="width: 6%; display: none;">SRO Schedule</th>
+                <th style="width: 6%; display: none;">SRO Item Sr.</th>
+                <th style="width: 5%;">UOM *</th>
+                <th style="width: 5%;">Qty *</th>
+                <th style="width: 12%;">Price *</th>
+                <th style="width: 9%;">Total Price</th>
+                <th style="width: 8%;">Retail Price</th>
+                <th style="width: 8%;">Total Retail Price</th>
+                <th style="width: 5%;">Discount %</th>
+                <th style="width: 10%;">Discount Amount</th>
+                <th style="width: 10%;">Sales Tax</th>
+                <th style="width: 5%; text-align: center;">Action</th>
+              </tr>
+            </thead>
+            <tbody id="items-grid-tbody">
+              <!-- Item rows added dynamically -->
+            </tbody>
+          </table>
+        </div>
+
+        <!-- UNREGISTERED BUYER WARNING ALERT -->
+        <div id="unregistered-buyer-warning" class="toast toast-warning"
+          style="display: none; margin-bottom: 12px; font-size: 13px; font-weight: 500; border-radius: var(--radius-md); padding: 12px 16px; align-items: center; gap: 8px;">
+          ⚠️ Buyer is Unregistered. You are advised to manually add Further Tax (4%) to the taxes breakdown below.
+        </div>
+
+        <!-- TAXES GRID -->
+        <div class="invoice-section-title">
+          <span>📊 Invoice Taxes Breakdown</span>
+          <button class="btn btn-secondary btn-sm" onclick="addTaxRow()">+ Add Tax Row</button>
+        </div>
+
+        <div class="grid-wrapper">
+          <table class="items-table" id="taxes-grid-table">
+            <thead>
+              <tr>
+                <th style="width: 25%;">Tax Type</th>
+                <th style="width: 15%;" id="tax-rate-header-label">Tax Rate (%)</th>
+                <th style="width: 18%;">Tax Nature</th>
+                <th style="width: 18%;">Total Price</th>
+                <th style="width: 18%; text-align: right; padding-right: 16px;">Calculated Tax Amount</th>
+                <th style="width: 6%; text-align: center;">Action</th>
+              </tr>
+            </thead>
+            <tbody id="taxes-grid-tbody">
+              <!-- Dynamically populated when items recalculate or when user adds manual rows -->
+            </tbody>
+          </table>
+        </div>
+
+        <!-- INVOICE FOOTER (Calculations & Actions) -->
+        <div class="invoice-footer">
+          <div>
+            <!-- Info block -->
+            <div
+              style="background-color: var(--bg-card); border: 1px solid var(--border-color); border-radius: var(--radius-lg); padding: 16px; font-size: 12px; color: var(--text-secondary); line-height: 1.5;">
+              <span style="color: var(--success); font-weight: 700; display: block; margin-bottom: 6px;">💡 FBR
+                Compliance Hints:</span>
+              <ul style="margin-left: 16px; display: flex; flex-direction: column; gap: 4px;">
+                <li><strong>Unregistered buyers</strong> are automatically charged <strong>Further Tax (4%)</strong> as
+                  per Section 3(1A) of Pakistan Sales Tax Act.</li>
+                <li><strong>HS Code</strong> must match the international Harmonized Commodity classification (e.g.
+                  0101.2100).</li>
+                <li>All calculations are computed real-time at double precision.</li>
+              </ul>
+            </div>
+          </div>
+
+          <div>
+            <!-- Calculations Box -->
+            <div class="summary-card">
+              <div class="summary-row">
+                <span>Total Price:</span>
+                <span id="summary-val-excl">PKR 0.00</span>
+              </div>
+              <div class="summary-row" id="summary-discount-row" style="display: none;">
+                <span>Discount / Reductions:</span>
+                <span id="summary-discount" style="color: #ef4444;">PKR 0.00</span>
+              </div>
+              <div class="summary-row" id="summary-retail-row" style="display: none;">
+                <span>Total Retail Price:</span>
+                <span id="summary-retail" style="color: #10b981;">PKR 0.00</span>
+              </div>
+              <div class="summary-row" id="summary-sales-tax-row">
+                <span>Sales Tax Amount:</span>
+                <span id="summary-sales-tax">PKR 0.00</span>
+              </div>
+              <div class="summary-row" id="summary-whtax-row" style="display: none;">
+                <span>Withheld Tax:</span>
+                <span id="summary-whtax" style="color: #60a5fa;">PKR 0.00</span>
+              </div>
+              <div class="summary-row" id="summary-extra-tax-row" style="display: none;">
+                <span>Extra Tax:</span>
+                <span id="summary-extra-tax" style="color: var(--warning);">PKR 0.00</span>
+              </div>
+              <div class="summary-row" id="summary-fed-row" style="display: none;">
+                <span>FED Tax Amount:</span>
+                <span id="summary-fed" style="color: #c084fc;">PKR 0.00</span>
+              </div>
+              <div class="summary-row" id="summary-further-tax-row" style="display: none;">
+                <span>Further Tax (4%):</span>
+                <span id="summary-further-tax" class="summary-value-highlight">PKR 0.00</span>
+              </div>
+              <div class="summary-row total">
+                <span>Grand Total:</span>
+                <span id="summary-grand-total">PKR 0.00</span>
+              </div>
+            </div>
+
+            <div class="action-bar">
+              <button class="btn btn-secondary" onclick="executeValidateInvoice()">
+                Validate Pre-Flight
+              </button>
+              <button class="btn btn-primary" onclick="executePostInvoice()">
+                🚀 Post to FBR
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <!-- FBR API Response Logger Box -->
+        <div class="response-inspector" id="fbr-response-inspector">
+          <div class="inspector-header">
+            <span style="font-weight: 700; font-size: 14px;">📡 FBR Gateway Response Inspector</span>
+            <span class="inspector-badge" id="response-status-badge">VALID</span>
+          </div>
+          <div class="inspector-body">
+            <div id="response-general-info">
+              <!-- General Info -->
+            </div>
+            <div class="error-details-box" id="response-error-box" style="display: none;">
+              <!-- Errors -->
+            </div>
+
+            <!-- Success PDF trigger -->
+            <div id="success-action-container"
+              style="display: none; margin-top: 16px; border-top: 1px solid var(--border-color); padding-top: 16px;">
+              <span style="color: var(--success); font-weight: bold; display: block; margin-bottom: 8px;">Invoice
+                successfully declared in FBR!</span>
+              <button class="btn btn-success" onclick="openReceiptModal()">
+                🖨️ Open Print Receipt
+              </button>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- 3. HISTORY LOGS PANEL -->
+      <section class="content-panel" id="panel-history">
+        <div class="panel-header">
+          <div class="panel-title">
+            <h1>FBR Invoicing History Logs</h1>
+            <p>Verify previously uploaded invoices and print compliant thermal receipts</p>
+          </div>
+        </div>
+
+        <div class="history-table-wrapper">
+          <table class="history-table">
+            <thead>
+              <tr>
+                <th>Date Reported</th>
+                <th>FBR Invoice Number</th>
+                <th>Buyer NTN/CNIC</th>
+                <th>Buyer Business Name</th>
+                <th>Grand Total</th>
+                <th>Gateway Mode</th>
+                <th style="text-align: center;">Actions</th>
+              </tr>
+            </thead>
+            <tbody id="history-logs-tbody">
+              <!-- Rendered dynamically -->
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      <!-- 5. CUSTOMERS PANEL -->
+      <section class="content-panel" id="panel-customers">
+        <div class="panel-header">
+          <div class="panel-title">
+            <h1>Customers Entry</h1>
+            <p>Define and manage customer registration and provinces</p>
+          </div>
+          <button class="btn btn-primary" onclick="openCustomerModal()">
+            + Add Customer
+          </button>
+        </div>
+
+        <div class="setup-table-wrapper">
+          <table class="setup-table">
+            <thead>
+              <tr>
+                <th>Customer Name</th>
+                <th>NTN/CNIC</th>
+                <th>Province</th>
+                <th>Registration</th>
+                <th>Email</th>
+                <th>Mobile</th>
+                <th style="text-align: center;">Actions</th>
+              </tr>
+            </thead>
+            <tbody id="customers-list-tbody">
+              <!-- Dynamically populated -->
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      <!-- 6. ITEMS PANEL -->
+      <section class="content-panel" id="panel-items">
+        <div class="panel-header">
+          <div class="panel-title">
+            <h1>Item Definition</h1>
+            <p>Manage product catalog and FBR HS Code / SRO configurations</p>
+          </div>
+          <button class="btn btn-primary" onclick="openItemModal()">
+            + Add Item
+          </button>
+        </div>
+
+        <div class="setup-table-wrapper">
+          <table class="setup-table">
+            <thead>
+              <tr>
+                <th>Product Description</th>
+                <th>HS Code</th>
+                <th>UOM</th>
+                <th>Sale Type</th>
+                <th>SRO Schedule</th>
+                <th>SRO Item Sr.</th>
+                <th>Retail Price (per unit)</th>
+                <th>Status</th>
+                <th style="text-align: center;">Actions</th>
+              </tr>
+            </thead>
+            <tbody id="items-list-tbody">
+              <!-- Dynamically populated -->
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      <!-- 7. TAXES PANEL -->
+      <section class="content-panel" id="panel-taxes">
+        <div class="panel-header">
+          <div class="panel-title">
+            <h1>Taxes Setup</h1>
+            <p>Define tax rates, types, and natures</p>
+          </div>
+          <button class="btn btn-primary" onclick="openTaxModal()">
+            + Add Tax Type
+          </button>
+        </div>
+
+        <div class="setup-table-wrapper">
+          <table class="setup-table">
+            <thead>
+              <tr>
+                <th>Tax Type / Name</th>
+                <th>Rate (%)</th>
+                <th>Tax Nature</th>
+                <th>Tax Category</th>
+                <th>Withholding</th>
+                <th style="text-align: center;">Actions</th>
+              </tr>
+            </thead>
+            <tbody id="taxes-list-tbody">
+              <!-- Dynamically populated -->
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      <!-- 4. SETTINGS PANEL -->
+      <section class="content-panel" id="panel-settings">
+        <div class="panel-header">
+          <div class="panel-title">
+            <h1>FBR Integration Settings</h1>
+            <p>Setup your seller information and FBR secure token</p>
+          </div>
+        </div>
+
+        <!-- Seller Business Profile -->
+        <div class="settings-section">
+          <div class="settings-title">
+            <span>🏢 Seller Business Profile (Taxpayer Details)</span>
+          </div>
+
+          <div class="form-grid">
+            <div class="form-group col-3">
+              <label class="form-label" for="seller-ntn">Seller NTN *</label>
+              <input class="form-control" type="text" id="seller-ntn" placeholder="e.g. 0786909-7">
+            </div>
+
+            <div class="form-group col-6">
+              <label class="form-label" for="seller-name">Seller Business Name *</label>
+              <input class="form-control" type="text" id="seller-name" placeholder="Official Registered Business Name">
+            </div>
+
+            <div class="form-group col-3">
+              <label class="form-label" for="seller-province">Seller Province *</label>
+              <select class="form-control" id="seller-province">
+                <option value="Punjab">Punjab</option>
+                <option value="Sindh" selected>Sindh</option>
+                <option value="Khyber Pakhtunkhwa">Khyber Pakhtunkhwa</option>
+                <option value="Balochistan">Balochistan</option>
+                <option value="Gilgit-Baltistan">Gilgit-Baltistan</option>
+                <option value="AJK">AJK</option>
+                <option value="Federal">Federal</option>
+              </select>
+            </div>
+
+            <div class="form-group col-12">
+              <label class="form-label" for="seller-address">Seller Registered Business Address *</label>
+              <input class="form-control" type="text" id="seller-address" placeholder="Physical Address">
+            </div>
+          </div>
+        </div>
+
+        <!-- FBR Integration Credentials -->
+        <div class="settings-section">
+          <div class="settings-title">
+            <span>🔑 FBR Gateway Credentials</span>
+          </div>
+
+          <div class="form-grid">
+            <div class="form-group col-4">
+              <label class="form-label" for="fbr-env-mode">Active Environment *</label>
+              <select class="form-control" id="fbr-env-mode" onchange="onEnvironmentToggle()">
+                <option value="sandbox">Sandbox (Testing Gateway)</option>
+                <option value="production">Production (Real-time Live Gateway)</option>
+              </select>
+            </div>
+
+            <div class="form-group col-8">
+              <label class="form-label" for="fbr-token">FBR Bearer Security Token (valid for 5 years) *</label>
+              <input class="form-control" type="password" id="fbr-token"
+                placeholder="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...">
+            </div>
+
+            <div class="form-group col-12"
+              style="flex-direction: row; gap: 8px; align-items: center; padding-top: 8px;">
+              <input type="checkbox" id="seller-send-totalval" style="width: 16px; height: 16px; cursor: pointer;">
+              <label class="form-label" for="seller-send-totalval" style="cursor: pointer; margin-bottom: 0;">Include
+                line-item <strong>Total Value</strong> in FBR JSON payload (Default is No)</label>
+            </div>
+          </div>
+        </div>
+
+        <!-- App Personalization (Themes) -->
+        <div class="settings-section">
+          <div class="settings-title">
+            <span>🎨 Application Personalization & Themes</span>
+          </div>
+
+          <div class="form-grid">
+            <div class="form-group col-12">
+              <label class="form-label" style="margin-bottom: 8px;">Select Application Theme</label>
+              <div class="theme-picker-container">
+                <div class="theme-card active" id="theme-midnight-abyss" onclick="applyAndSetTheme('midnight-abyss')"
+                  style="flex: 1; min-width: 140px; cursor: pointer; padding: 16px; border-radius: var(--radius-md); border: 2px solid var(--border-color); background: hsl(224, 71%, 4%); text-align: center;">
+                  <div
+                    style="width: 24px; height: 24px; border-radius: 50%; background: linear-gradient(135deg, hsl(250, 89%, 65%) 0%, hsl(263, 90%, 55%) 100%); margin: 0 auto 10px auto;">
+                  </div>
+                  <span style="font-size: 13px; font-weight: 600; color: #fff;">Midnight Abyss</span>
+                </div>
+                <div class="theme-card" id="theme-ocean-breeze" onclick="applyAndSetTheme('ocean-breeze')"
+                  style="flex: 1; min-width: 140px; cursor: pointer; padding: 16px; border-radius: var(--radius-md); border: 2px solid var(--border-color); background: hsl(220, 60%, 3%); text-align: center;">
+                  <div
+                    style="width: 24px; height: 24px; border-radius: 50%; background: linear-gradient(135deg, hsl(200, 95%, 50%) 0%, hsl(190, 90%, 45%) 100%); margin: 0 auto 10px auto;">
+                  </div>
+                  <span style="font-size: 13px; font-weight: 600; color: #fff;">Ocean Breeze</span>
+                </div>
+                <div class="theme-card" id="theme-emerald-forest" onclick="applyAndSetTheme('emerald-forest')"
+                  style="flex: 1; min-width: 140px; cursor: pointer; padding: 16px; border-radius: var(--radius-md); border: 2px solid var(--border-color); background: hsl(160, 60%, 2%); text-align: center;">
+                  <div
+                    style="width: 24px; height: 24px; border-radius: 50%; background: linear-gradient(135deg, hsl(150, 80%, 45%) 0%, hsl(165, 85%, 40%) 100%); margin: 0 auto 10px auto;">
+                  </div>
+                  <span style="font-size: 13px; font-weight: 600; color: #fff;">Emerald Forest</span>
+                </div>
+                <div class="theme-card" id="theme-sunset-crimson" onclick="applyAndSetTheme('sunset-crimson')"
+                  style="flex: 1; min-width: 140px; cursor: pointer; padding: 16px; border-radius: var(--radius-md); border: 2px solid var(--border-color); background: hsl(340, 50%, 3%); text-align: center;">
+                  <div
+                    style="width: 24px; height: 24px; border-radius: 50%; background: linear-gradient(135deg, hsl(15, 90%, 55%) 0%, hsl(350, 85%, 50%) 100%); margin: 0 auto 10px auto;">
+                  </div>
+                  <span style="font-size: 13px; font-weight: 600; color: #fff;">Sunset Crimson</span>
+                </div>
+                <div class="theme-card" id="theme-amethyst-purple" onclick="applyAndSetTheme('amethyst-purple')"
+                  style="flex: 1; min-width: 140px; cursor: pointer; padding: 16px; border-radius: var(--radius-md); border: 2px solid var(--border-color); background: hsl(270, 50%, 3%); text-align: center;">
+                  <div
+                    style="width: 24px; height: 24px; border-radius: 50%; background: linear-gradient(135deg, hsl(280, 85%, 60%) 0%, hsl(260, 85%, 55%) 100%); margin: 0 auto 10px auto;">
+                  </div>
+                  <span style="font-size: 13px; font-weight: 600; color: #fff;">Amethyst Purple</span>
+                </div>
+                <div class="theme-card" id="theme-obsidian-onyx" onclick="applyAndSetTheme('obsidian-onyx')"
+                  style="flex: 1; min-width: 140px; cursor: pointer; padding: 16px; border-radius: var(--radius-md); border: 2px solid var(--border-color); background: hsl(0, 0%, 2%); text-align: center;">
+                  <div
+                    style="width: 24px; height: 24px; border-radius: 50%; background: linear-gradient(135deg, hsl(0, 0%, 95%) 0%, hsl(0, 0%, 75%) 100%); margin: 0 auto 10px auto;">
+                  </div>
+                  <span style="font-size: 13px; font-weight: 600; color: #fff;">Obsidian Onyx</span>
+                </div>
+                <div class="theme-card" id="theme-crystal-light" onclick="applyAndSetTheme('crystal-light')"
+                  style="flex: 1; min-width: 140px; cursor: pointer; padding: 16px; border-radius: var(--radius-md); border: 2px solid var(--border-color); background: hsl(220, 25%, 97%); text-align: center;">
+                  <div
+                    style="width: 24px; height: 24px; border-radius: 50%; background: linear-gradient(135deg, hsl(250, 84%, 54%) 0%, hsl(263, 80%, 48%) 100%); border: 1px solid hsla(220, 20%, 80%, 0.6); margin: 0 auto 10px auto;">
+                  </div>
+                  <span style="font-size: 13px; font-weight: 600; color: #0f172a;">Crystal Light</span>
+                </div>
+              </div>
+              <input type="hidden" id="app-theme-val" value="midnight-abyss">
+            </div>
+          </div>
+        </div>
+
+        <div style="display: flex; justify-content: flex-end; gap: 12px; margin-top: 16px;">
+          <button class="btn btn-primary" onclick="saveSettings()">
+            💾 Save Settings
+          </button>
+        </div>
+      </section>
+
+      <!-- 8. INVOICE PRINTING PANEL -->
+      <section class="content-panel" id="panel-invoice-printing">
+        <div class="panel-header">
+          <div class="panel-title">
+            <h1>Invoice Printing</h1>
+            <p>Filter, search, and batch-print compliant invoices</p>
+          </div>
+          <button class="btn btn-primary" onclick="printFilteredInvoices()" style="display: flex; align-items: center; gap: 8px;">
+            <svg viewBox="0 0 24 24" style="width: 16px; height: 16px; fill: none; stroke: currentColor; stroke-width: 2;">
+              <path d="M6 9V2h12v7M6 18H4a2 2 0 01-2-2v-5a2 2 0 012-2h16a2 2 0 012 2v5a2 2 0 01-2 2h-2M6 14h12v8H6z"/>
+            </svg>
+            Print
+          </button>
+        </div>
+
+        <!-- Filter Controls -->
+        <div class="settings-section" style="margin-bottom: 20px;">
+          <div class="form-grid">
+            <div class="form-group col-4">
+              <label class="form-label" for="print-company">Company</label>
+              <select class="form-control" id="print-company" onchange="onPrintFilterChange()">
+                <!-- Populated dynamically -->
+              </select>
+            </div>
+            <div class="form-group col-4">
+              <label class="form-label" for="print-customer">Customer</label>
+              <select class="form-control" id="print-customer" onchange="onPrintFilterChange()">
+                <!-- Populated dynamically -->
+              </select>
+            </div>
+            <div class="form-group col-4">
+              <label class="form-label" for="print-invoice-select">Invoice #</label>
+              <select class="form-control" id="print-invoice-select" onchange="onPrintFilterChange()">
+                <!-- Populated dynamically -->
+              </select>
+            </div>
+            <div class="form-group col-6">
+              <label class="form-label" for="print-from-date">From Date</label>
+              <input class="form-control" type="date" id="print-from-date" onchange="onPrintFilterChange()">
+            </div>
+            <div class="form-group col-6">
+              <label class="form-label" for="print-to-date">To Date</label>
+              <input class="form-control" type="date" id="print-to-date" onchange="onPrintFilterChange()">
+            </div>
+          </div>
+        </div>
+
+        <!-- Preview Results Table -->
+        <div class="setup-table-wrapper">
+          <table class="setup-table">
+            <thead>
+              <tr>
+                <th>Invoice Number</th>
+                <th>Invoice Date</th>
+                <th>Buyer Name</th>
+                <th style="text-align: right;">Value Excl. ST (PKR)</th>
+                <th style="text-align: right;">Sales Tax (PKR)</th>
+                <th style="text-align: right;">Further Tax (PKR)</th>
+                <th style="text-align: right;">Grand Total (PKR)</th>
+                <th style="text-align: center;">Status</th>
+                <th style="text-align: center;">Actions</th>
+              </tr>
+            </thead>
+            <tbody id="print-list-tbody">
+              <!-- Populated dynamically -->
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      <!-- 9. SALE INVOICE DETAILS PANEL -->
+      <section class="content-panel" id="panel-sale-details">
+        <div class="panel-header">
+          <div class="panel-title">
+            <h1>Sale Invoice Details</h1>
+            <p>Detailed sales register of line-item transactions</p>
+          </div>
+          <button class="btn btn-primary" onclick="printSalesDetailsReport()" style="display: flex; align-items: center; gap: 8px;">
+            <svg viewBox="0 0 24 24" style="width: 16px; height: 16px; fill: none; stroke: currentColor; stroke-width: 2;">
+              <path d="M6 9V2h12v7M6 18H4a2 2 0 01-2-2v-5a2 2 0 012-2h16a2 2 0 012 2v5a2 2 0 01-2 2h-2M6 14h12v8H6z"/>
+            </svg>
+            Print Report
+          </button>
+        </div>
+
+        <!-- Filter Controls -->
+        <div class="settings-section" style="margin-bottom: 20px;">
+          <div class="form-grid">
+            <div class="form-group col-4">
+              <label class="form-label" for="report-company">Company</label>
+              <select class="form-control" id="report-company" onchange="onReportFilterChange()">
+                <!-- Populated dynamically -->
+              </select>
+            </div>
+            <div class="form-group col-4">
+              <label class="form-label" for="report-customer">Customer</label>
+              <select class="form-control" id="report-customer" onchange="onReportFilterChange()">
+                <!-- Populated dynamically -->
+              </select>
+            </div>
+            <div class="form-group col-4">
+              <label class="form-label" for="report-invoice-select">Invoice #</label>
+              <select class="form-control" id="report-invoice-select" onchange="onReportFilterChange()">
+                <!-- Populated dynamically -->
+              </select>
+            </div>
+            <div class="form-group col-6">
+              <label class="form-label" for="report-from-date">From Date</label>
+              <input class="form-control" type="date" id="report-from-date" onchange="onReportFilterChange()">
+            </div>
+            <div class="form-group col-6">
+              <label class="form-label" for="report-to-date">To Date</label>
+              <input class="form-control" type="date" id="report-to-date" onchange="onReportFilterChange()">
+            </div>
+          </div>
+        </div>
+
+        <!-- Detailed Sales Register Table -->
+        <div class="setup-table-wrapper" style="overflow-x: auto;">
+          <table class="setup-table" style="min-width: 1100px;">
+            <thead>
+              <tr>
+                <th>Date</th>
+                <th>Invoice #</th>
+                <th>Buyer Name</th>
+                <th>Product Description</th>
+                <th>HS Code</th>
+                <th style="text-align: center;">Qty</th>
+                <th style="text-align: right;">Value Excl. ST (PKR)</th>
+                <th style="text-align: center;">Tax Rate</th>
+                <th style="text-align: right;">Sales Tax (PKR)</th>
+                <th style="text-align: right;">Further Tax (PKR)</th>
+                <th style="text-align: right;">Grand Total (PKR)</th>
+              </tr>
+            </thead>
+            <tbody id="report-details-tbody">
+              <!-- Populated dynamically -->
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+    </main>
+  </div>
+
+  <!-- ==========================================
+       MODAL OVERLAY (ADD/EDIT CUSTOMER)
+       ========================================== -->
+  <div class="modal-overlay" id="customer-modal">
+    <div class="modal-card">
+      <div class="modal-header">
+        <span class="modal-title" id="customer-modal-title">Customers Entry</span>
+        <div style="display: flex; gap: 8px;">
+          <button class="btn btn-primary" id="cust-submit-btn" onclick="saveCustomerForm()"
+            style="padding: 6px 16px;">Create</button>
+          <button class="btn btn-secondary" onclick="closeCustomerModal()" style="padding: 6px 16px;">Cancel</button>
+        </div>
+      </div>
+      <div class="modal-body">
+        <input type="hidden" id="cust-id">
+        <div class="form-grid">
+          <div class="form-group col-3">
+            <label class="form-label" for="cust-id-display">Party #.</label>
+            <input class="form-control" type="text" id="cust-id-display" readonly disabled placeholder="Auto"
+              style="border: 1px dashed var(--border-color); background-color: var(--bg-secondary); color: var(--text-muted);">
+          </div>
+          <div class="form-group col-9">
+            <label class="form-label" for="cust-name">Party Name *</label>
+            <input class="form-control" type="text" id="cust-name" placeholder="Party Name">
+          </div>
+          <div class="form-group col-12">
+            <label class="form-label" for="cust-address">Address *</label>
+            <input class="form-control" type="text" id="cust-address" placeholder="Physical Address">
+          </div>
+          <div class="form-group col-4">
+            <label class="form-label" for="cust-ntn">NTN/CNIC *</label>
+            <input class="form-control" type="text" id="cust-ntn" placeholder="Registered NTN or CNIC">
+          </div>
+          <div class="form-group col-4">
+            <label class="form-label" for="cust-email">Email</label>
+            <input class="form-control" type="email" id="cust-email" placeholder="Email Address">
+          </div>
+          <div class="form-group col-4">
+            <label class="form-label" for="cust-mobile">Mobile No</label>
+            <input class="form-control" type="text" id="cust-mobile" placeholder="Mobile Number">
+          </div>
+          <div class="form-group col-4">
+            <label class="form-label" for="cust-party-type">Party Type *</label>
+            <select class="form-control" id="cust-party-type">
+              <option value="COMMISSION">COMMISSION</option>
+              <option value="EXPORT">EXPORT</option>
+              <option value="FAISALABAD">FAISALABAD</option>
+              <option value="INTERIOR SINDH">INTERIOR SINDH</option>
+              <option value="KARACHI">KARACHI</option>
+              <option value="LAHORE ZONE">LAHORE ZONE</option>
+              <option value="LHR SURRANDING">LHR SURRANDING</option>
+              <option value="LOCAL">LOCAL</option>
+              <option value="MULTAN">MULTAN</option>
+              <option value="PESHAWAR">PESHAWAR</option>
+              <option value="RAWALPINDI">RAWALPINDI</option>
+              <option value="SAHIWAL">SAHIWAL</option>
+            </select>
+          </div>
+          <div class="form-group col-4">
+            <label class="form-label" for="cust-province">Province *</label>
+            <select class="form-control" id="cust-province">
+              <option value="AZAD JAMMU AND KASHMIR">AZAD JAMMU AND KASHMIR</option>
+              <option value="BALOCHISTAN">BALOCHISTAN</option>
+              <option value="CAPITAL TERRITORY">CAPITAL TERRITORY</option>
+              <option value="GILGIT BALTISTAN">GILGIT BALTISTAN</option>
+              <option value="KHYBER PAKHTUNKHWA">KHYBER PAKHTUNKHWA</option>
+              <option value="PUNJAB">PUNJAB</option>
+              <option value="SINDH">SINDH</option>
+            </select>
+          </div>
+          <div class="form-group col-4">
+            <label class="form-label" for="cust-reg-type">Registration Type *</label>
+            <select class="form-control" id="cust-reg-type">
+              <option value="Registered">Registered</option>
+              <option value="Unregistered">Unregistered</option>
+            </select>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ==========================================
+       MODAL OVERLAY (ADD/EDIT ITEM)
+       ========================================== -->
+  <div class="modal-overlay" id="item-modal">
+    <div class="modal-card">
+      <div class="modal-header">
+        <span class="modal-title" id="item-modal-title">📦 Add Product Item</span>
+        <button class="modal-close" onclick="closeItemModal()">&times;</button>
+      </div>
+      <div class="modal-body">
+        <input type="hidden" id="item-id">
+        <div class="form-grid">
+          <div class="form-group col-12">
+            <label class="form-label" for="item-desc">Product Description *</label>
+            <textarea class="form-control" id="item-desc" placeholder="Product Details"
+              style="min-height: 60px; font-family: inherit; resize: vertical;"></textarea>
+          </div>
+          <div class="form-group col-6">
+            <label class="form-label" for="item-hscode">HS Code *</label>
+            <input class="form-control" type="text" id="item-hscode" placeholder="8-digit HS Code">
+          </div>
+          <div class="form-group col-6">
+            <label class="form-label" for="item-uom">Unit of Measure (UOM) *</label>
+            <select class="form-control" id="item-uom">
+              <option value="Square Metre">Square Metre</option>
+              <option value="KILOGRAM">KILOGRAM</option>
+              <option value="Numbers, pieces, units">Numbers, pieces, units</option>
+              <option value="Liter">Liter</option>
+              <option value="Meter">Meter</option>
+              <option value="Pcs">Pcs</option>
+              <option value="KG">KG</option>
+              <option value="KWH">KWH</option>
+              <option value="MMBTU">MMBTU</option>
+              <option value="MT">MT</option>
+              <option value="Square Foot">Square Foot</option>
+            </select>
+          </div>
+          <div class="form-group col-12">
+            <label class="form-label" for="item-sale-type">Sale Type *</label>
+            <select class="form-control" id="item-sale-type" onchange="toggleModalRetailPriceField()">
+              <option value="3rd Schedule Goods">3rd Schedule Goods</option>
+              <option value="Exempt goods">Exempt goods</option>
+              <option value="Goods at Reduced Rate">Goods at Reduced Rate</option>
+              <option value="Goods at standard rate (default)">Goods at standard rate (default)</option>
+              <option value="Goods at zero-rate">Goods at zero-rate</option>
+              <option value="Processing/ Conversion of Goods">Processing/ Conversion of Goods</option>
+              <option value="Petroleum Products">Petroleum Products</option>
+              <option value="Electricity Supply to Retailers">Electricity Supply to Retailers</option>
+              <option value="Gas to CNG stations">Gas to CNG stations</option>
+              <option value="Mobile Phones">Mobile Phones</option>
+              <option value="Goods (FED in ST Mode)">Goods (FED in ST Mode)</option>
+              <option value="Services (FED in ST Mode)">Services (FED in ST Mode)</option>
+              <option value="Services">Services</option>
+              <option value="Electric Vehicle">Electric Vehicle</option>
+              <option value="Cement /Concrete Block">Cement /Concrete Block</option>
+              <option value="Potassium Chlorate">Potassium Chlorate</option>
+              <option value="CNG Sales">CNG Sales</option>
+              <option value="Goods as per SRO.297(|)/2023">Goods as per SRO.297(|)/2023</option>
+              <option value="Non-Adjustable Supplies">Non-Adjustable Supplies</option>
+              <option value="Telecommunication services">Telecommunication services</option>
+              <option value="Cotton Ginners">Cotton Ginners</option>
+              <option value="Toll Manufacturing">Toll Manufacturing</option>
+            </select>
+          </div>
+          <div class="form-group col-6">
+            <label class="form-label" for="item-sroschedule">SRO Schedule Reference</label>
+            <input class="form-control" type="text" id="item-sroschedule" placeholder="e.g. 6th Schedule">
+          </div>
+          <div class="form-group col-6">
+            <label class="form-label" for="item-sroserial">SRO Item Serial No</label>
+            <input class="form-control" type="text" id="item-sroserial" placeholder="e.g. 100">
+          </div>
+          <div class="form-group col-12" style="display: none;" id="item-retailprice-container">
+            <label class="form-label" for="item-retailprice">Default Retail Price (per unit) *</label>
+            <input class="form-control" type="number" step="0.01" min="0" id="item-retailprice" value="0.00"
+              placeholder="e.g. 2000.00">
+          </div>
+          <div class="form-group col-12" style="flex-direction: row; gap: 8px; align-items: center; padding-top: 8px;">
+            <input type="checkbox" id="item-active" checked style="width: 16px; height: 16px; cursor: pointer;">
+            <label class="form-label" for="item-active" style="cursor: pointer; margin-bottom: 0;">Product is Active and
+              Available for Invoicing</label>
+          </div>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-secondary" onclick="closeItemModal()">Cancel</button>
+        <button class="btn btn-primary" onclick="saveItemForm()">Save Product</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ==========================================
+       MODAL OVERLAY (ADD/EDIT TAX TYPE)
+       ========================================== -->
+  <div class="modal-overlay" id="tax-modal">
+    <div class="modal-card">
+      <div class="modal-header">
+        <span class="modal-title" id="tax-modal-title">📊 Add Tax Rate Type</span>
+        <button class="modal-close" onclick="closeTaxModal()">&times;</button>
+      </div>
+      <div class="modal-body">
+        <input type="hidden" id="tax-id">
+        <div class="form-grid">
+          <div class="form-group col-6">
+            <label class="form-label" for="tax-typename">Tax Type *</label>
+            <input class="form-control" type="text" id="tax-typename" placeholder="e.g. Standard 18%">
+          </div>
+          <div class="form-group col-3">
+            <label class="form-label" for="tax-rate">Rate (%) *</label>
+            <input class="form-control" type="number" step="0.01" min="0" id="tax-rate" placeholder="e.g. 18" value="0">
+          </div>
+          <div class="form-group col-3">
+            <label class="form-label" for="tax-fixed-rate">Fixed Tax (Rs/Unit)</label>
+            <input class="form-control" type="number" step="0.01" min="0" id="tax-fixed-rate" placeholder="e.g. 60" value="0">
+          </div>
+          <div class="form-group col-6">
+            <label class="form-label" for="tax-nature">Tax Nature *</label>
+            <select class="form-control" id="tax-nature">
+              <option value="Exclusive Taxes">Exclusive Taxes</option>
+              <option value="Inclusive Sales + Extra Tax">Inclusive Sales + Extra Tax</option>
+              <option value="Inclusive Sales + FED Tax">Inclusive Sales + FED Tax</option>
+              <option value="Inclusive Sales Tax">Inclusive Sales Tax</option>
+              <option value="Income Tax">Income Tax</option>
+              <option value="Sales Tax">Sales Tax</option>
+            </select>
+          </div>
+          <div class="form-group col-6">
+            <label class="form-label" for="tax-category">Tax Type *</label>
+            <div style="display: flex; align-items: center; gap: 12px; width: 100%;">
+              <select class="form-control" id="tax-category" style="flex-grow: 1;">
+                <option value="Extra Tax">Extra Tax</option>
+                <option value="FED Tax">FED Tax</option>
+                <option value="Further Tax">Further Tax</option>
+                <option value="Income Tax">Income Tax</option>
+                <option value="Sales Tax">Sales Tax</option>
+                <option value="Sales With Held Tax">Sales With Held Tax</option>
+              </select>
+              <div style="display: flex; align-items: center; gap: 6px; white-space: nowrap; padding-top: 4px;">
+                <input type="checkbox" id="tax-whtax" style="width: 16px; height: 16px; margin: 0; cursor: pointer;">
+                <label class="form-label" for="tax-whtax" style="cursor: pointer; margin-bottom: 0;">WH Tax</label>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-secondary" onclick="closeTaxModal()">Cancel</button>
+        <button class="btn btn-primary" onclick="saveTaxForm()">Save Tax Type</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ==========================================
+       MODAL OVERLAY (FBR COMPLIANT THERMAL RECEIPT)
+       ========================================== -->
+  <div class="modal-overlay" id="receipt-modal">
+    <div class="modal-card modal-large">
+      <div class="modal-header">
+        <span class="modal-title">🖨️ Compliant Invoice Print Preview</span>
+        <button class="modal-close" onclick="closeReceiptModal()">&times;</button>
+      </div>
+
+      <div class="modal-body" style="background-color: #222; padding: 24px; overflow-x: auto;">
+
+        <!-- FBR Official Landscape Invoice -->
+        <div class="fbr-invoice-card" id="printable-receipt-card">
+          <!-- Top Header block -->
+          <div class="invoice-top-header">
+            <div class="seller-big-name" id="receipt-seller-name-header">SELLER BUSINESS NAME</div>
+            <div class="header-right-logos">
+              <!-- FBR Official Seal & Digital Invoicing Badge -->
+              <img src="fbrdigitalinvoicesystemlogo.png" alt="FBR Digital Invoicing System Logo" width="76" height="76"
+                style="display: block; object-fit: contain;">
+              <!-- QR Code -->
+              <div class="receipt-qrcode-box" id="qrcode"></div>
+            </div>
+          </div>
+
+          <!-- Info Columns grid -->
+          <div class="info-columns-grid">
+            <div class="info-col">
+              <h3>Seller Information</h3>
+              <div class="info-line">
+                <span class="info-label">Business Name:</span>
+                <span class="info-value" id="receipt-seller-name">SELLER BUSINESS NAME</span>
+              </div>
+              <div class="info-line">
+                <span class="info-label">Registration No.:</span>
+                <span class="info-value" id="receipt-seller-ntn">3653258</span>
+              </div>
+              <div class="info-line">
+                <span class="info-label">Province:</span>
+                <span class="info-value" id="receipt-seller-province">PUNJAB</span>
+              </div>
+              <div class="info-line">
+                <span class="info-label">Source Invoice No.:</span>
+                <span class="info-value" id="receipt-source-invoice">-</span>
+              </div>
+            </div>
+
+            <div class="info-col">
+              <h3>Buyer Information</h3>
+              <div class="info-line">
+                <span class="info-label">Business Name:</span>
+                <span class="info-value" id="receipt-buyer-name">BUYER BUSINESS NAME</span>
+              </div>
+              <div class="info-line">
+                <span class="info-label">Registration No.:</span>
+                <span class="info-value" id="receipt-buyer-ntn">1000000000000</span>
+              </div>
+              <div class="info-line">
+                <span class="info-label">Province:</span>
+                <span class="info-value" id="receipt-buyer-province">SINDH</span>
+              </div>
+            </div>
+
+            <div class="info-col">
+              <h3>Invoice Summary</h3>
+              <div class="info-line font-bold">
+                <span class="info-label">FBR Invoice No.:</span>
+                <span class="info-value" id="receipt-fbr-invoice-no">PENDING POSTING</span>
+              </div>
+              <div class="info-line">
+                <span class="info-label">Invoice Date:</span>
+                <span class="info-value" id="receipt-invoice-date">2026-05-23</span>
+              </div>
+              <div class="info-line">
+                <span class="info-label">Invoice Type:</span>
+                <span class="info-value" id="receipt-invoice-type">Sale Invoice</span>
+              </div>
+              <div class="info-line">
+                <span class="info-label">Tax Period:</span>
+                <span class="info-value" id="receipt-tax-period">202605</span>
+              </div>
+              <div class="info-line">
+                <span class="info-label">Insertion Date:</span>
+                <span class="info-value" id="receipt-insertion-date">2026-05-23</span>
+              </div>
+              <div class="info-line">
+                <span class="info-label">Status:</span>
+                <span class="info-value font-green" id="receipt-status">Valid</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Items Table -->
+          <div class="invoice-table-container">
+            <table class="invoice-print-table">
+              <thead>
+                <tr>
+                  <th>Sr. No.</th>
+                  <th>HS Code</th>
+                  <th>HS Code Description</th>
+                  <th>Product Description</th>
+                  <th>Sales Type</th>
+                  <th>Quantity</th>
+                  <th>UoM</th>
+                  <th>Rate</th>
+                  <th>Sales Value</th>
+                  <th>Retail Price</th>
+                  <th>Sales Tax</th>
+                  <th>Extra Tax</th>
+                  <th>Further Tax</th>
+                  <th>FED</th>
+                  <th>ST WHT</th>
+                  <th>Discount</th>
+                  <th>SRO / Schedule No.</th>
+                  <th>SRO Item Sr. No.</th>
+                  <th>Status</th>
+                </tr>
+              </thead>
+              <tbody id="receipt-items-tbody">
+                <!-- Dynamically Rendered -->
+              </tbody>
+              <tfoot>
+                <tr class="totals-row">
+                  <td colspan="8" style="text-align: right; font-weight: bold; padding: 6px;">Total:</td>
+                  <td id="receipt-total-sales-value" style="text-align: right; font-weight: bold; padding: 6px;">0.00</td>
+                  <td id="receipt-total-retail" style="text-align: right; font-weight: bold; padding: 6px;">0.00</td>
+                  <td id="receipt-total-sales-tax" style="text-align: right; font-weight: bold; padding: 6px;">0.00</td>
+                  <td id="receipt-total-extra-tax" style="text-align: right; font-weight: bold; padding: 6px;">0.00</td>
+                  <td id="receipt-total-further-tax" style="text-align: right; font-weight: bold; padding: 6px;">0.00</td>
+                  <td id="receipt-total-fed" style="text-align: right; font-weight: bold; padding: 6px;">0.00</td>
+                  <td id="receipt-total-wht" style="text-align: right; font-weight: bold; padding: 6px;">0.00</td>
+                  <td id="receipt-total-discount" style="text-align: right; font-weight: bold; padding: 6px;">0.00</td>
+                  <td colspan="3"></td>
+                </tr>
+              </tfoot>
+            </table>
+          </div>
+
+          <!-- Invoice Bottom Footer -->
+          <div class="invoice-bottom-footer">
+            <div class="footer-note">In the above invoices, "E" denotes that the invoice has been edited, whereas "C"
+              indicates that the invoice has been cancelled.</div>
+            <div class="footer-page">Page 1 of 1</div>
+          </div>
+        </div>
+
+      </div>
+
+      <div class="modal-footer">
+        <button class="btn btn-secondary" onclick="closeReceiptModal()">Close Preview</button>
+        <button class="btn btn-success" onclick="triggerSavePDF()">💾 Save as PDF</button>
+        <button class="btn btn-primary" onclick="triggerPrint()">🖨️ Print Invoice</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ==========================================
+       MODAL OVERLAY (CONFIRMATION DIALOG)
+       ========================================== -->
+  <div class="modal-overlay" id="confirm-modal">
+    <div class="modal-card" style="max-width: 420px;">
+      <div class="modal-header" style="padding: 16px 20px;">
+        <span class="modal-title" id="confirm-modal-title">⚠️ Confirm Action</span>
+        <button class="modal-close" onclick="closeConfirmModal()">&times;</button>
+      </div>
+      <div class="modal-body" style="padding: 20px;">
+        <p id="confirm-modal-message" style="line-height: 1.5; font-size: 14px; color: var(--text-secondary); margin: 0;"></p>
+      </div>
+      <div class="modal-footer" style="padding: 12px 20px;">
+        <button class="btn btn-secondary" onclick="confirmModalCallback(false)">Cancel</button>
+        <button class="btn btn-danger" id="confirm-modal-yes-btn" onclick="confirmModalCallback(true)">Delete</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Expose offline QR library -->
+  <script src="qrcode.min.js"></script>
+  <!-- Database layer -->
+  <script src="db.js"></script>
+  <!-- Main application scripts -->
+  <script src="renderer.js"></script>
+
+</body>
+
+</html>

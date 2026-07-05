@@ -1,0 +1,87 @@
+curl -X POST "https://gw.fbr.gov.pk/di_data/v1/di/postinvoicedata_sb" ^
+ -H "Accept: */*" ^
+ -H "Accept-Encoding: deflate, gzip" ^
+ -H "User-Agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/138.0.0.0 Safari/537.36" ^
+ -H "Authorization: Bearer 5fae93d2-6831-3b1d-9a75-88c199fdb3f8" ^
+ -H "Content-Type: application/json" ^
+ -d "{\"invoiceType\":\"Sale Invoice\",\"invoiceDate\":\"2025-04-08\",\"sellerNTNCNIC\":\"3653258\",\"sellerBusinessName\":\"Vertex Medical (Pvt) Limited\",\"sellerProvince\":\"Punjab\",\"sellerAddress\":\"61-CCA, 2nd FLOOR, EX-PARK VIEW, DHA PHASE VIII, LAHORE, PAKISTAN.\",\"buyerNTNCNIC\":\"8989878-3\",\"buyerBusinessName\":\"MOMENTUM LOGISTICS (PVT) LIMITED\",\"buyerProvince\":\"Punjab\",\"buyerAddress\":\"LAHORE\",\"buyerRegistrationType\":\"Registered\",\"invoiceRefNo\":\"INV-2025-0001\",\"scenarioId\":\"SN001\",\"items\":[{\"hsCode\":\"8421.2100\",\"productDescription\":\"RO\",\"rate\":\"18%\",\"uoM\":\"Numbers, pieces, units\",\"quantity\":1,\"totalValues\":0,\"valueSalesExcludingST\":100,\"fixedNotifiedValueOrRetailPrice\":0,\"salesTaxApplicable\":18,\"salesTaxWithheldAtSource\":0,\"extraTax\":\"\",\"furtherTax\":0,\"sroScheduleNo\":\"\",\"fedPayable\":0,\"discount\":0,\"saleType\":\"Goods at standard rate (default)\",\"sroItemSerialNo\":\"\"}]}"
+^
+
+curl -X POST "https://gw.fbr.gov.pk/di_data/v1/di/postinvoicedata_sb" -H "Content-Type: application/json" -H "Authorization: Bearer 5fae93d2-6831-3b1d-9a75-88c199fdb3f8" -d "{\"invoiceType\": \"Sale Invoice\", \"invoiceDate\": \"'2025-04-07\", \"sellerNTNCNIC\": \"3653258-4\", \"sellerBusinessName\": \"Vertex Medical (Pvt) Limited\", \"sellerProvince\": \"Punjab\", \"sellerAddress\": \"401-402, Block-F, Johar Town, Lahore\", \"buyerNTNCNIC\": \"9020799-0\", \"buyerBusinessName\": \"Kot Khawaja Saeed Teaching Hospital Lahore\", \"buyerProvince\": \"PUNJAB\", \"buyerAddress\": \"Lahore\", \"buyerRegistrationType\": \"Registered\", \"invoiceRefNo\": \"\", \"scenarioId\": \"SN001\", \"items\": [{\"hsCode\": \"8421.2100\", \"productDescription\": \"O2 STAR MEDIUM CONCENTRATION OXYGEN MASK WITH CONNECTION TUBE 2.1M DISPOSABLE\", \"rate\": \"18%\", \"uoM\": \"NO\", \"quantity\": 2000, \"totalValues\": 0, \"valueSalesExcludingST\": 2000, \"fixedNotifiedValueOrRetailPrice\": 0, \"salesTaxApplicable\": 360, \"salesTaxWithheldAtSource\": 0, \"extraTax\": \"\", \"furtherTax\": 0, \"sroScheduleNo\": \"\", \"fedPayable\": 0, \"discount\": 0, \"saleType\": \"Goods at standard rate (default)\", \"sroItemSerialNo\": \"\"}]}"
+
+{
+  "invoiceType": "Sale Invoice",
+  "invoiceDate": "2025-04-08",
+  "sellerNTNCNIC": "3653258",
+  "sellerBusinessName": "Vertex Medical (Pvt) Limited",
+  "sellerProvince": "Punjab",
+  "sellerAddress": "61-CCA, 2nd FLOOR, EX-PARK VIEW, DHA PHASE VIII, LAHORE, PAKISTAN.",
+  "buyerNTNCNIC": "8989878-3",
+  "buyerBusinessName": "MOMENTUM LOGISTICS (PVT) LIMITED",
+  "buyerProvince": "Punjab",
+  "buyerAddress": "LAHORE",
+  "buyerRegistrationType": "Registered",
+  "invoiceRefNo": "INV-2025-0001",
+  "scenarioId": "SN001",
+  "items": [
+    {
+      "hsCode": "8421.2100",
+      "productDescription": "RO",
+      "rate": "18%",
+      "uoM": "Numbers, pieces, units",
+      "quantity": 1,
+      "totalValues": 0,
+      "valueSalesExcludingST": 100,
+      "fixedNotifiedValueOrRetailPrice": 0,
+      "salesTaxApplicable": 18,
+      "salesTaxWithheldAtSource": 0,
+      "extraTax": "",
+      "furtherTax": 0,
+      "sroScheduleNo": "",
+      "fedPayable": 0,
+      "discount": 0,
+      "saleType": "Goods at standard rate (default)",
+      "sroItemSerialNo": ""
+    }
+  ]
+}
+
+-----------------SN001--------------
+curl -i --compressed -X POST "https://gw.fbr.gov.pk/di_data/v1/di/postinvoicedata_sb" ^
+ -H "Accept: */*" ^
+ -H "Accept-Encoding: deflate, gzip" ^
+ -H "User-Agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/138.0.0.0 Safari/537.36" ^
+ -H "Authorization: Bearer 5fae93d2-6831-3b1d-9a75-88c199fdb3f8" ^
+ -H "Content-Type: application/json" ^
+ -d "{\"invoiceType\":\"Sale Invoice\",\"invoiceDate\":\"2025-04-13\",\"sellerNTNCNIC\":\"3653258\",\"sellerBusinessName\":\"Vertex Medical (Pvt) Limited\",\"sellerProvince\":\"Punjab\",\"sellerAddress\":\"Lahore\",\"buyerNTNCNIC\":\"9020846\",\"buyerBusinessName\":\"MOMENTUM LOGISTICS (PVT) LIMITED\",\"buyerProvince\":\"Punjab\",\"buyerAddress\":\"Lahore\",\"buyerRegistrationType\":\"Registered\",\"invoiceRefNo\":\"\",\"scenarioId\":\"SN001\",\"items\":[{\"hsCode\":\"8421.2100\",\"productDescription\":\"RO\",\"rate\":\"18%\",\"uoM\":\"Numbers, pieces, units\",\"quantity\":1,\"totalValues\":0,\"valueSalesExcludingST\":1000,\"fixedNotifiedValueOrRetailPrice\":0,\"salesTaxApplicable\":180,\"salesTaxWithheldAtSource\":0,\"extraTax\":\"\",\"furtherTax\":0,\"sroScheduleNo\":\"\",\"fedPayable\":0,\"discount\":0,\"saleType\":\"Goods at standard rate (default)\",\"sroItemSerialNo\":\"\"}]}"
+ ^
+
+-----------------SN002--------------
+curl -i --compressed -X POST "https://gw.fbr.gov.pk/di_data/v1/di/postinvoicedata_sb" ^
+ -H "Accept: */*" ^
+ -H "Accept-Encoding: deflate, gzip" ^
+ -H "User-Agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/138.0.0.0 Safari/537.36" ^
+ -H "Authorization: Bearer 5fae93d2-6831-3b1d-9a75-88c199fdb3f8" ^
+ -H "Content-Type: application/json" ^
+ -d "{\"invoiceType\":\"Sale Invoice\",\"invoiceDate\":\"2025-04-10\",\"sellerNTNCNIC\":\"3653258\",\"sellerBusinessName\":\"Vertex Medical (Pvt) Limited\",\"sellerProvince\":\"Punjab\",\"sellerAddress\":\"LAHORE\",\"buyerNTNCNIC\":\"9999997\",\"buyerBusinessName\":\"Infrastructure Lahore\",\"buyerProvince\":\"Punjab\",\"buyerAddress\":\"Lahore\",\"buyerRegistrationType\":\"Unregistered\",\"invoiceRefNo\":\"\",\"scenarioId\":\"SN002\",\"items\":[{\"hsCode\":\"8421.2100\",\"productDescription\":\"RO\",\"rate\":\"18%\",\"uoM\":\"Numbers, pieces, units\",\"quantity\":1,\"totalValues\":0,\"valueSalesExcludingST\":1000,\"fixedNotifiedValueOrRetailPrice\":0,\"salesTaxApplicable\":180,\"salesTaxWithheldAtSource\":0,\"extraTax\":\"\",\"furtherTax\":0,\"sroScheduleNo\":\"\",\"fedPayable\":0,\"discount\":0,\"saleType\":\"Goods at standard rate (default)\",\"sroItemSerialNo\":\"\"}]}"
+ ^
+
+-----------------SN005--------------seria no , SRO #, ST 1%, ST amount as per 1% ---------
+curl -X POST "https://gw.fbr.gov.pk/di_data/v1/di/postinvoicedata_sb" ^
+ -H "Accept: */*" ^
+ -H "Accept-Encoding: deflate, gzip" ^
+ -H "User-Agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/138.0.0.0 Safari/537.36" ^
+ -H "Authorization: Bearer 5fae93d2-6831-3b1d-9a75-88c199fdb3f8" ^
+ -H "Content-Type: application/json" ^
+ -d "{\"invoiceType\":\"Sale Invoice\",\"invoiceDate\":\"2025-04-18\",\"sellerNTNCNIC\":\"3653258\",\"sellerBusinessName\":\"Vertex Medical (Pvt) Limited\",\"sellerProvince\":\"Punjab\",\"sellerAddress\":\"LAHORE\",\"buyerNTNCNIC\":\"9999997\",\"buyerBusinessName\":\"Infrastructure Lahore\",\"buyerProvince\":\"Punjab\",\"buyerAddress\":\"Lahore\",\"buyerRegistrationType\":\"Unregistered\",\"invoiceRefNo\":\"\",\"scenarioId\":\"SN005\",\"items\":[{\"hsCode\":\"8421.2100\",\"productDescription\":\"RO\",\"rate\":\"1%\",\"uoM\":\"Numbers, pieces, units\",\"quantity\":1,\"totalValues\":0,\"valueSalesExcludingST\":1000,\"fixedNotifiedValueOrRetailPrice\":0,\"salesTaxApplicable\":10,\"salesTaxWithheldAtSource\":0,\"extraTax\":\"\",\"furtherTax\":0,\"sroScheduleNo\":\"EIGHTH SCHEDULE Table 1\",\"fedPayable\":0,\"discount\":0,\"saleType\":\"Goods at Reduced Rate\",\"sroItemSerialNo\":\"82\"}]}"
+ ^
+
+-----------------SN006--------------seria no , SRO #, ST Exempt , ST amount 0 ---------
+curl -X POST "https://gw.fbr.gov.pk/di_data/v1/di/postinvoicedata_sb" ^
+ -H "Accept: */*" ^
+ -H "Accept-Encoding: deflate, gzip" ^
+ -H "User-Agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/138.0.0.0 Safari/537.36" ^
+ -H "Authorization: Bearer 5fae93d2-6831-3b1d-9a75-88c199fdb3f8" ^
+ -H "Content-Type: application/json" ^
+ -d "{\"invoiceType\":\"Sale Invoice\",\"invoiceDate\":\"2025-04-22\",\"sellerNTNCNIC\":\"3653258\",\"sellerBusinessName\":\"Vertex Medical (Pvt) Limited\",\"sellerProvince\":\"Punjab\",\"sellerAddress\":\"LAHORE\",\"buyerNTNCNIC\":\"9999997\",\"buyerBusinessName\":\"Infrastructure Lahore\",\"buyerProvince\":\"Punjab\",\"buyerAddress\":\"Lahore\",\"buyerRegistrationType\":\"Unregistered\",\"invoiceRefNo\":\"\",\"scenarioId\":\"SN006\",\"items\":[{\"hsCode\":\"8421.2100\",\"productDescription\":\"RO\",\"rate\":\"Exempt\",\"uoM\":\"Numbers, pieces, units\",\"quantity\":1,\"totalValues\":0,\"valueSalesExcludingST\":1000,\"fixedNotifiedValueOrRetailPrice\":0,\"salesTaxApplicable\":0,\"salesTaxWithheldAtSource\":0,\"extraTax\":\"\",\"furtherTax\":0,\"sroScheduleNo\":\"6th Schd Table I\",\"fedPayable\":0,\"discount\":0,\"saleType\":\"Exempt goods\",\"sroItemSerialNo\":\"100\"}]}"
+ ^

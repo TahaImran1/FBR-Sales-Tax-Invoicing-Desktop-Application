@@ -1,0 +1,47 @@
+{
+  "name": "fbr-invoicing-app",
+  "version": "1.0.0",
+  "description": "FBR Compliant Digital Invoicing Desktop Suite (Compliance 2026)",
+  "main": "main.js",
+  "scripts": {
+    "start": "electron .",
+    "build": "electron-builder --win"
+  },
+  "keywords": [
+    "fbr",
+    "digital-invoicing",
+    "pakistan-tax",
+    "compliance-2026"
+  ],
+  "author": "Antigravity",
+  "license": "ISC",
+  "devDependencies": {
+    "electron": "^31.0.0",
+    "electron-builder": "^24.13.3"
+  },
+  "build": {
+    "appId": "com.antigravity.fbr-invoicing-app",
+    "win": {
+      "target": "nsis",
+      "icon": "build/icon.ico"
+    },
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true
+    },
+    "files": [
+      "main.js",
+      "preload.js",
+      "index.html",
+      "renderer.js",
+      "db.js",
+      "style.css",
+      "qrcode.min.js",
+      "fbrdigitalinvoicesystemlogo.png",
+      "app_logo.png"
+    ],
+    "directories": {
+      "output": "dist"
+    }
+  }
+}

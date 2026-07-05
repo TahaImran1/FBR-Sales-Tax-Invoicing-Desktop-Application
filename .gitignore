@@ -1,0 +1,41 @@
+# Dependency directories
+node_modules/
+
+# Build outputs (packaged installers, etc.)
+dist/
+build-artifacts/
+
+# Python files
+__pycache__/
+*.py[cod]
+*$py.class
+.venv/
+venv/
+ENV/
+
+# Operating System files
+.DS_Store
+Thumbs.db
+
+# IDE configurations
+.vscode/
+.idea/
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
+.agents/
+.history/
+
+# Local data & API logs (contains transaction bodies)
+docs/last_fbr_payload.json
+scratch/
+
+# Environment configurations
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+*.env
