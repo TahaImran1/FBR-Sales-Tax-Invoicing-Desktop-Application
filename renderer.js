@@ -3159,9 +3159,11 @@ async function autoConfigureScenario() {
       targetTaxRateVal = 18;
       defaultValue = 1000;
     } else if (scenario === 'SN017') {
-      targetItem = dbItemsList.find(x => x.hsCode === '8421.2100' && x.saleType === 'Goods (FED in ST Mode)');
-      targetTaxRateVal = 17;
-      defaultValue = 1000;
+      targetItem = dbItemsList.find(x => x.hsCode === '2710.1240' && x.saleType === 'Goods (FED in ST Mode)') ||
+                   dbItemsList.find(x => x.saleType === 'Goods (FED in ST Mode)');
+      targetTaxRateVal = 18;
+      defaultValue = 100;
+      defaultQty = 1;
     } else if (scenario === 'SN018') {
       targetItem = dbItemsList.find(x => x.hsCode === '9812.1000' && x.saleType === 'Services (FED in ST Mode)');
       targetTaxRateVal = 19.5;
@@ -6245,9 +6247,22 @@ function generateSandboxScenarioPayload(sn, seller) {
   } else if (sn === "SN016") {
     item.saleType = "Processing/Conversion of Goods";
   } else if (sn === "SN017") {
+    item.hsCode = "2710.1240";
+    item.productDescription = "TEST";
     item.saleType = "Goods (FED in ST Mode)";
-    item.rate = "17%";
-    item.salesTaxApplicable = 170;
+    item.rate = "18% and Rs. 80 per Liter";
+    item.uoM = "Liter";
+    item.quantity = 1;
+    item.valueSalesExcludingST = 100;
+    item.fixedNotifiedValueOrRetailPrice = 0;
+    item.salesTaxApplicable = 98;
+    item.furtherTax = 0;
+    item.extraTax = 0;
+    item.fedPayable = 0;
+    item.discount = 0;
+    item.totalValues = 0;
+    item.sroScheduleNo = "";
+    item.sroItemSerialNo = "";
   } else if (sn === "SN018") {
     item.hsCode = "9812.1000";
     item.saleType = " Services (FED in ST Mode) ";
