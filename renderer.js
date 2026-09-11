@@ -7011,11 +7011,17 @@ async function initUpdaterUI() {
 
     switch (data.status) {
       case 'checking':
-        if (statusText) statusText.value = "Checking for updates...";
+        if (statusText) {
+          statusText.value = "Checking for updates...";
+          statusText.title = "Checking for updates...";
+        }
         break;
 
       case 'available':
-        if (statusText) statusText.value = `Update v${data.version} available.`;
+        if (statusText) {
+          statusText.value = `Update v${data.version} available.`;
+          statusText.title = `Update v${data.version} available.`;
+        }
         if (availableBanner) availableBanner.style.display = 'flex';
         if (availableText) availableText.textContent = `Version v${data.version} is now available!`;
         if (globalBanner) globalBanner.style.display = 'flex';
@@ -7023,7 +7029,10 @@ async function initUpdaterUI() {
         break;
 
       case 'not-available':
-        if (statusText) statusText.value = "Application is up to date.";
+        if (statusText) {
+          statusText.value = "Application is up to date.";
+          statusText.title = "Application is up to date.";
+        }
         if (availableBanner) availableBanner.style.display = 'none';
         if (globalBanner) globalBanner.style.display = 'none';
         if (progressContainer) progressContainer.style.display = 'none';
@@ -7032,14 +7041,20 @@ async function initUpdaterUI() {
       case 'downloading':
         if (availableBanner) availableBanner.style.display = 'none';
         if (globalBanner) globalBanner.style.display = 'none';
-        if (statusText) statusText.value = `Downloading update: ${data.percent}%`;
+        if (statusText) {
+          statusText.value = `Downloading update: ${data.percent}%`;
+          statusText.title = `Downloading update: ${data.percent}%`;
+        }
         if (progressContainer) progressContainer.style.display = 'flex';
         if (progressLabel) progressLabel.textContent = `Downloading Update: ${data.percent}%`;
         if (progressBar) progressBar.style.width = `${data.percent}%`;
         break;
 
       case 'downloaded':
-        if (statusText) statusText.value = `Update v${data.version} ready to install.`;
+        if (statusText) {
+          statusText.value = `Update v${data.version} ready to install.`;
+          statusText.title = `Update v${data.version} ready to install.`;
+        }
         if (progressContainer) progressContainer.style.display = 'none';
         if (availableBanner) availableBanner.style.display = 'none';
         if (globalBanner) globalBanner.style.display = 'none';
@@ -7051,7 +7066,19 @@ async function initUpdaterUI() {
         break;
 
       case 'error':
-        if (statusText) statusText.value = `Update check failed.`;
+        let errDesc = "Update check failed.";
+        const rawErr = (data && data.error) ? String(data.error) : "";
+        if (rawErr.includes('404') || rawErr.includes('latest-') || rawErr.includes('releases/latest')) {
+          errDesc = "Update check failed: No published release found on GitHub (releases may be in Draft).";
+        } else if (rawErr.includes('net::') || rawErr.includes('ENOTFOUND')) {
+          errDesc = "Update check failed: Network connection error.";
+        } else if (rawErr) {
+          errDesc = `Update check failed: ${rawErr}`;
+        }
+        if (statusText) {
+          statusText.value = errDesc;
+          statusText.title = errDesc;
+        }
         if (progressContainer) progressContainer.style.display = 'none';
         console.error("Updater error:", data.error);
         break;
@@ -7127,17 +7154,33 @@ window.checkForAppUpdates = async function () {
   }
   if (statusText) {
     statusText.value = "Checking for updates...";
+    statusText.title = "Checking for updates...";
   }
 
   try {
     const res = await window.api.checkForUpdates();
-    if (res && !res.success && res.message) {
-      alert(res.message);
-      if (statusText) statusText.value = res.message;
+    if (res && !res.success) {
+      const errMsg = res.message || res.error || "Update check failed.";
+      let userFriendly = errMsg;
+      if (errMsg.includes('404') || errMsg.includes('latest-') || errMsg.includes('releases/latest')) {
+        userFriendly = "Update check failed: No published release found on GitHub (releases may be in Draft).";
+      }
+      if (statusText) {
+        statusText.value = userFriendly;
+        statusText.title = userFriendly;
+      }
+      if (res.message) alert(res.message);
     }
   } catch (err) {
     console.error("Check for updates failed:", err);
-    if (statusText) statusText.value = "Update check failed.";
+    let errMsg = "Update check failed: " + (err.message || err);
+    if (errMsg.includes('404') || errMsg.includes('latest-') || errMsg.includes('releases/latest')) {
+      errMsg = "Update check failed: No published release found on GitHub (releases may be in Draft).";
+    }
+    if (statusText) {
+      statusText.value = errMsg;
+      statusText.title = errMsg;
+    }
   } finally {
     if (btn) {
       btn.disabled = false;
