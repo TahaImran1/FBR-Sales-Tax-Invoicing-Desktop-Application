@@ -24,13 +24,13 @@
          ========================================== -->
     <aside class="sidebar">
       <div class="sidebar-logo">
-        <img src="app_logo.png" alt="App Logo" class="logo-icon" style="object-fit: contain; background: none; box-shadow: none;">
+        <img src="app_logo.png" alt="App Logo" class="logo-icon"
+          style="object-fit: contain; background: none; box-shadow: none;">
         <div class="logo-details">
           <div class="logo-text">FBR INVOICE</div>
           <div class="logo-sub">Compliance 2026</div>
         </div>
       </div>
-
       <nav class="nav-menu">
         <div class="nav-item active" id="nav-dashboard" onclick="switchPanel('dashboard')">
           <svg viewBox="0 0 24 24">
@@ -39,18 +39,12 @@
           </svg>
           <span class="nav-text">Dashboard</span>
         </div>
-        <div class="nav-item" id="nav-invoice" onclick="switchPanel('invoice')">
+        <div class="nav-item" id="nav-history" onclick="switchPanel('history')">
           <svg viewBox="0 0 24 24">
             <path
               d="M19.5 14.25v-2.625a3.375 3.375 0 00-3.375-3.375h-1.5A1.125 1.125 0 0113.5 7.125v-1.5a3.375 3.375 0 00-3.375-3.375H8.25m0 12.75h7.5m-7.5 3H12M10.5 2.25H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 00-9-9z" />
           </svg>
-          <span class="nav-text">Create Invoice</span>
-        </div>
-        <div class="nav-item" id="nav-history" onclick="switchPanel('history')">
-          <svg viewBox="0 0 24 24">
-            <path d="M12 6v6h4.5m4.5 0a9 9 0 11-18 0 9 9 0 0118 0z" />
-          </svg>
-          <span class="nav-text">History Logs</span>
+          <span class="nav-text">Sale Invoices</span>
         </div>
 
         <div class="setup-header">Setup Modules</div>
@@ -84,13 +78,25 @@
           </svg>
           <span class="nav-text">Company Profile</span>
         </div>
+        <div class="nav-item" id="nav-sandbox-test" onclick="switchPanel('sandbox-test')">
+          <svg viewBox="0 0 24 24"
+            style="width: 20px; height: 20px; fill: none; stroke: currentColor; stroke-width: 2;">
+            <path stroke-linecap="round" stroke-linejoin="round"
+              d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+          </svg>
+          <span class="nav-text">Compliance Test Suite</span>
+        </div>
         <div class="nav-item" id="nav-reports" onclick="toggleReportsSubmenu()">
-          <svg viewBox="0 0 24 24" style="width: 20px; height: 20px; fill: none; stroke: currentColor; stroke-width: 2;">
-            <path d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" stroke-linecap="round" stroke-linejoin="round"/>
+          <svg viewBox="0 0 24 24"
+            style="width: 20px; height: 20px; fill: none; stroke: currentColor; stroke-width: 2;">
+            <path
+              d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"
+              stroke-linecap="round" stroke-linejoin="round" />
           </svg>
           <span class="nav-text">Reports</span>
-          <svg id="reports-chevron" viewBox="0 0 24 24" style="width: 14px; height: 14px; fill: none; stroke: currentColor; stroke-width: 2; margin-left: auto; transition: transform 0.2s;">
-            <path d="M19 9l-7 7-7-7" stroke-linecap="round" stroke-linejoin="round"/>
+          <svg id="reports-chevron" viewBox="0 0 24 24"
+            style="width: 14px; height: 14px; fill: none; stroke: currentColor; stroke-width: 2; margin-left: auto; transition: transform 0.2s;">
+            <path d="M19 9l-7 7-7-7" stroke-linecap="round" stroke-linejoin="round" />
           </svg>
         </div>
         <div id="reports-submenu" style="display: none; flex-direction: column; gap: 4px;">
@@ -214,32 +220,40 @@
             <h1>Create FBR Digital Invoice</h1>
             <p>Prepare, validate, and report real-time compliance invoices</p>
           </div>
-          <button class="btn btn-secondary" onclick="resetInvoiceForm()">Clear Form</button>
+          <div style="display: flex; gap: 8px; align-items: center;">
+            <button class="btn btn-secondary" onclick="resetInvoiceForm()">Clear Form</button>
+          </div>
         </div>
 
         <div class="settings-section">
+          <!-- Draft Mode Banner -->
+          <div id="draft-mode-banner"
+            style="display: none; align-items: center; justify-content: space-between; background: rgba(245, 158, 11, 0.1); border: 1px solid var(--warning); padding: 12px 16px; border-radius: var(--radius-md); margin-bottom: 20px; color: var(--warning); font-size: 13px;">
+            <div>
+              <strong>✏️ Draft Mode:</strong> You are currently editing Draft <span id="draft-mode-id">#0</span>. Saving
+              as draft will overwrite this draft, and posting to FBR will promote it to a reported invoice.
+            </div>
+            <button class="btn btn-secondary btn-sm" onclick="cancelDraftMode()"
+              style="padding: 4px 12px; font-size: 11px; margin-left: 12px;">Cancel Draft Mode</button>
+          </div>
+
           <div class="settings-title">
-            <span>📝 Invoice Header & Buyer Details</span>
+            <span>👤 Customer Details</span>
           </div>
 
           <div class="form-grid">
-            <!-- Invoice Info -->
+            <!-- Hidden inputs to maintain compatibility with FBR gateway serialization -->
+            <input type="hidden" id="invoice-type" value="Sale Invoice">
+
             <div class="form-group col-3">
-              <label class="form-label" for="invoice-type">Invoice Type *</label>
-              <select class="form-control" id="invoice-type" onchange="toggleRefInvoiceField()">
-                <option value="Sale Invoice">Sale Invoice</option>
-                <option value="Debit Note">Debit Note</option>
-              </select>
+              <label class="form-label" for="invoice-db-no">Invoice No</label>
+              <input class="form-control" type="text" id="invoice-db-no" readonly disabled value="New"
+                style="border: 1px dashed var(--border-color); background-color: var(--bg-secondary); color: var(--text-muted); text-align: center;">
             </div>
 
             <div class="form-group col-3">
               <label class="form-label" for="invoice-date">Invoice Date *</label>
               <input class="form-control" type="date" id="invoice-date">
-            </div>
-
-            <div class="form-group col-3" id="group-ref-no">
-              <label class="form-label" for="invoice-ref-no">Invoice Reference No</label>
-              <input class="form-control" type="text" id="invoice-ref-no" placeholder="e.g. 0 or REF-1234">
             </div>
 
             <div class="form-group col-3" id="group-sandbox-scenario">
@@ -276,6 +290,11 @@
               </select>
             </div>
 
+            <div class="form-group col-3">
+              <label class="form-label" for="invoice-manual-no">Manual Invoice No</label>
+              <input class="form-control" type="text" id="invoice-manual-no" placeholder="">
+            </div>
+
             <!-- Buyer Details -->
             <div class="form-group col-4">
               <label class="form-label" for="invoice-party-select">Party / Customer Name *</label>
@@ -286,40 +305,95 @@
 
             <div class="form-group col-4">
               <label class="form-label" for="buyer-ntn">Buyer NTN/CNIC</label>
-              <input class="form-control" type="text" id="buyer-ntn" readonly placeholder="Auto-populated"
+              <input class="form-control" type="text" id="buyer-ntn" readonly placeholder=""
                 style="background-color: var(--bg-secondary); color: var(--text-secondary);">
             </div>
 
             <div class="form-group col-4">
               <label class="form-label" for="buyer-reg-type">Buyer Registration Type</label>
-              <input class="form-control" type="text" id="buyer-reg-type" readonly placeholder="Auto-populated"
+              <input class="form-control" type="text" id="buyer-reg-type" readonly placeholder=""
                 style="background-color: var(--bg-secondary); color: var(--text-secondary);">
             </div>
 
             <div class="form-group col-8">
               <label class="form-label" for="buyer-name">Buyer Business Name</label>
-              <input class="form-control" type="text" id="buyer-name" readonly placeholder="Auto-populated"
+              <input class="form-control" type="text" id="buyer-name" readonly placeholder=""
                 style="background-color: var(--bg-secondary); color: var(--text-secondary);">
             </div>
 
             <div class="form-group col-4">
               <label class="form-label" for="buyer-province">Buyer Province</label>
-              <input class="form-control" type="text" id="buyer-province" readonly placeholder="Auto-populated"
+              <input class="form-control" type="text" id="buyer-province" readonly placeholder=""
                 style="background-color: var(--bg-secondary); color: var(--text-secondary);">
             </div>
 
             <div class="form-group col-12">
               <label class="form-label" for="buyer-address">Buyer Registered Address</label>
-              <input class="form-control" type="text" id="buyer-address" readonly placeholder="Auto-populated"
+              <input class="form-control" type="text" id="buyer-address" readonly placeholder=""
                 style="background-color: var(--bg-secondary); color: var(--text-secondary);">
             </div>
           </div>
         </div>
 
         <!-- LINE ITEMS -->
-        <div class="invoice-section-title">
-          <span>📦 Invoice Line Items</span>
-          <button class="btn btn-secondary btn-sm" onclick="addInvoiceItemRow()">+ Add Item Row</button>
+        <!-- LINE ITEMS -->
+        <div class="invoice-section-title" style="display: flex; justify-content: space-between; align-items: center;">
+          <span>📦 Item Details</span>
+          <div style="display: flex; gap: 10px;">
+            <div class="dropdown" style="position: relative; display: inline-block;">
+              <button class="btn btn-secondary btn-sm" onclick="toggleColumnDropdown()" id="btn-col-toggle">⚙
+                Columns</button>
+              <div id="column-toggle-dropdown" class="dropdown-content"
+                style="display: none; position: absolute; right: 0; background-color: var(--bg-card); min-width: 180px; box-shadow: 0px 8px 16px 0px rgba(0,0,0,0.3); z-index: 100; border: 1px solid var(--border-color); border-radius: 6px; padding: 8px;">
+                <label
+                  style="display: flex; align-items: center; gap: 8px; margin: 6px 0; cursor: pointer; color: var(--text-primary); font-size: 13px; user-select: none;">
+                  <input type="checkbox" id="col-chk-hscode" checked
+                    onchange="setColumnVisibility('hscode', this.checked)"> HS Code
+                </label>
+                <label
+                  style="display: flex; align-items: center; gap: 8px; margin: 6px 0; cursor: pointer; color: var(--text-primary); font-size: 13px; user-select: none;">
+                  <input type="checkbox" id="col-chk-saletype" checked
+                    onchange="setColumnVisibility('saletype', this.checked)"> Sale Type
+                </label>
+                <label
+                  style="display: flex; align-items: center; gap: 8px; margin: 6px 0; cursor: pointer; color: var(--text-primary); font-size: 13px; user-select: none;">
+                  <input type="checkbox" id="col-chk-retail" onchange="setColumnVisibility('retail', this.checked)">
+                  Retail Price
+                </label>
+                <label
+                  style="display: flex; align-items: center; gap: 8px; margin: 6px 0; cursor: pointer; color: var(--text-primary); font-size: 13px; user-select: none;">
+                  <input type="checkbox" id="col-chk-discount" checked
+                    onchange="setColumnVisibility('discount', this.checked)"> Discount
+                </label>
+                <label
+                  style="display: flex; align-items: center; gap: 8px; margin: 6px 0; cursor: pointer; color: var(--text-primary); font-size: 13px; user-select: none;">
+                  <input type="checkbox" id="col-chk-furthertax" checked
+                    onchange="setColumnVisibility('furthertax', this.checked)"> Further Tax
+                </label>
+                <label
+                  style="display: flex; align-items: center; gap: 8px; margin: 6px 0; cursor: pointer; color: var(--text-primary); font-size: 13px; user-select: none;">
+                  <input type="checkbox" id="col-chk-extratax" checked
+                    onchange="setColumnVisibility('extratax', this.checked)"> Extra Tax
+                </label>
+                <label
+                  style="display: flex; align-items: center; gap: 8px; margin: 6px 0; cursor: pointer; color: var(--text-primary); font-size: 13px; user-select: none;">
+                  <input type="checkbox" id="col-chk-whtax" checked
+                    onchange="setColumnVisibility('whtax', this.checked)"> Withholding Tax
+                </label>
+                <label
+                  style="display: flex; align-items: center; gap: 8px; margin: 6px 0; cursor: pointer; color: var(--text-primary); font-size: 13px; user-select: none;">
+                  <input type="checkbox" id="col-chk-fedtax" checked
+                    onchange="setColumnVisibility('fedtax', this.checked)"> FED Tax
+                </label>
+                <label
+                  style="display: flex; align-items: center; gap: 8px; margin: 6px 0; cursor: pointer; color: var(--text-primary); font-size: 13px; user-select: none;">
+                  <input type="checkbox" id="col-chk-fixedtax" onchange="setColumnVisibility('fixedtax', this.checked)">
+                  Fixed Notified Value / Levy
+                </label>
+              </div>
+            </div>
+            <button class="btn btn-secondary btn-sm" onclick="addInvoiceItemRow()">+ Add Item Row</button>
+          </div>
         </div>
 
         <div class="grid-wrapper">
@@ -327,19 +401,25 @@
             <thead>
               <tr>
                 <th style="width: 20%;">Product Description *</th>
-                <th style="width: 10%;">HS Code *</th>
-                <th style="width: 10%;">Sale Type *</th>
+                <th style="width: 10%;" class="col-hscode">HS Code *</th>
+                <th style="width: 10%;" class="col-saletype">Sale Type *</th>
                 <th style="width: 6%; display: none;">SRO Schedule</th>
                 <th style="width: 6%; display: none;">SRO Item Sr.</th>
                 <th style="width: 5%;">UOM *</th>
                 <th style="width: 5%;">Qty *</th>
-                <th style="width: 12%;">Price *</th>
-                <th style="width: 9%;">Total Price</th>
-                <th style="width: 8%;">Retail Price</th>
-                <th style="width: 8%;">Total Retail Price</th>
-                <th style="width: 5%;">Discount %</th>
-                <th style="width: 10%;">Discount Amount</th>
-                <th style="width: 10%;">Sales Tax</th>
+                <th style="width: 12%;">Rate *</th>
+                <th style="width: 12%;">Excl. Amt</th>
+                <th style="width: 8%;" class="col-retail">Retail Price</th>
+                <th style="width: 8%;" class="col-retail">Total Retail Price</th>
+                <th style="width: 5%;" class="col-discount">Discount %</th>
+                <th style="width: 10%;" class="col-discount">Discount Amount</th>
+                <th style="width: 10%;" id="th-sales-tax">Sales Tax</th>
+                <th style="width: 10%;" id="th-further-tax" class="col-furthertax">Further Tax</th>
+                <th style="width: 10%;" id="th-extra-tax" class="col-extratax">Extra Tax</th>
+                <th style="width: 10%;" id="th-wh-tax" class="col-whtax">Withholding Tax</th>
+                <th style="width: 10%;" id="th-fed-tax" class="col-fedtax">FED Tax</th>
+                <th style="width: 8%;" id="th-fixed-tax" class="col-fixedtax">Fixed Notified Value</th>
+                <th style="width: 8%;" id="th-total-levy" class="col-fixedtax">Total Fixed Notified Value</th>
                 <th style="width: 5%; text-align: center;">Action</th>
               </tr>
             </thead>
@@ -357,7 +437,7 @@
 
         <!-- TAXES GRID -->
         <div class="invoice-section-title">
-          <span>📊 Invoice Taxes Breakdown</span>
+          <span>📊 Tax Details</span>
           <button class="btn btn-secondary btn-sm" onclick="addTaxRow()">+ Add Tax Row</button>
         </div>
 
@@ -368,7 +448,7 @@
                 <th style="width: 25%;">Tax Type</th>
                 <th style="width: 15%;" id="tax-rate-header-label">Tax Rate (%)</th>
                 <th style="width: 18%;">Tax Nature</th>
-                <th style="width: 18%;">Total Price</th>
+                <th style="width: 18%;">Excl. Amt</th>
                 <th style="width: 18%; text-align: right; padding-right: 16px;">Calculated Tax Amount</th>
                 <th style="width: 6%; text-align: center;">Action</th>
               </tr>
@@ -401,7 +481,7 @@
             <!-- Calculations Box -->
             <div class="summary-card">
               <div class="summary-row">
-                <span>Total Price:</span>
+                <span>Total Excl. Amt:</span>
                 <span id="summary-val-excl">PKR 0.00</span>
               </div>
               <div class="summary-row" id="summary-discount-row" style="display: none;">
@@ -412,11 +492,24 @@
                 <span>Total Retail Price:</span>
                 <span id="summary-retail" style="color: #10b981;">PKR 0.00</span>
               </div>
+              <div class="summary-row" id="summary-fixedtax-row" style="display: none;">
+                <span id="summary-fixedtax-label">Total Fixed Notified Value:</span>
+                <span id="summary-fixedtax" style="color: #60a5fa;">PKR 0.00</span>
+              </div>
               <div class="summary-row" id="summary-sales-tax-row">
                 <span>Sales Tax Amount:</span>
                 <span id="summary-sales-tax">PKR 0.00</span>
               </div>
-              <div class="summary-row" id="summary-whtax-row" style="display: none;">
+              <div class="summary-row" id="summary-further-tax-row">
+                <span>Further Tax:</span>
+                <span id="summary-further-tax" class="summary-value-highlight">PKR 0.00</span>
+              </div>
+              <div class="summary-row" id="summary-incl-tax-row"
+                style="border-top: 1px dashed var(--border-color); border-bottom: 1px dashed var(--border-color); padding: 6px 0; margin: 4px 0;">
+                <span style="font-weight: 600; color: var(--text-primary);">Total Inclusive Sales Tax:</span>
+                <span id="summary-incl-tax" style="font-weight: 600; color: var(--text-primary);">PKR 0.00</span>
+              </div>
+              <div class="summary-row" id="summary-whtax-row">
                 <span>Withheld Tax:</span>
                 <span id="summary-whtax" style="color: #60a5fa;">PKR 0.00</span>
               </div>
@@ -428,10 +521,6 @@
                 <span>FED Tax Amount:</span>
                 <span id="summary-fed" style="color: #c084fc;">PKR 0.00</span>
               </div>
-              <div class="summary-row" id="summary-further-tax-row" style="display: none;">
-                <span>Further Tax (4%):</span>
-                <span id="summary-further-tax" class="summary-value-highlight">PKR 0.00</span>
-              </div>
               <div class="summary-row total">
                 <span>Grand Total:</span>
                 <span id="summary-grand-total">PKR 0.00</span>
@@ -439,6 +528,9 @@
             </div>
 
             <div class="action-bar">
+              <button class="btn btn-secondary" onclick="saveInvoiceDraft()">
+                💾 Save as Draft
+              </button>
               <button class="btn btn-secondary" onclick="executeValidateInvoice()">
                 Validate Pre-Flight
               </button>
@@ -483,6 +575,28 @@
             <h1>FBR Invoicing History Logs</h1>
             <p>Verify previously uploaded invoices and print compliant thermal receipts</p>
           </div>
+          <div style="display: flex; gap: 8px; align-items: center;">
+            <button class="btn btn-primary" onclick="switchPanel('invoice')">➕ Create Invoice</button>
+            <button class="btn" style="background-color: var(--warning); color: #fff; border: none; font-weight: 500;"
+              onclick="switchPanel('drafts')">Draft Invoices</button>
+          </div>
+        </div>
+
+        <!-- Filters Bar -->
+        <div class="filters-card" style="background: var(--bg-card); border: 1px solid var(--border-color); padding: 16px; border-radius: var(--radius-lg); margin-bottom: 24px; display: flex; gap: 16px; align-items: flex-end; box-shadow: var(--shadow-sm);">
+          <div class="form-group" style="flex: 2; margin-bottom: 0; display: flex; flex-direction: column; gap: 6px;">
+            <label class="form-label" for="history-filter-customer" style="font-size: 11px; text-transform: uppercase; font-weight: 700; color: var(--text-secondary); margin-bottom: 0;">Search Customer</label>
+            <input type="text" id="history-filter-customer" class="form-control" placeholder="Search by name or NTN..." oninput="applyHistoryFilters()">
+          </div>
+          <div class="form-group" style="flex: 1; margin-bottom: 0; display: flex; flex-direction: column; gap: 6px;">
+            <label class="form-label" for="history-filter-start-date" style="font-size: 11px; text-transform: uppercase; font-weight: 700; color: var(--text-secondary); margin-bottom: 0;">Start Date</label>
+            <input type="date" id="history-filter-start-date" class="form-control" onchange="applyHistoryFilters()">
+          </div>
+          <div class="form-group" style="flex: 1; margin-bottom: 0; display: flex; flex-direction: column; gap: 6px;">
+            <label class="form-label" for="history-filter-end-date" style="font-size: 11px; text-transform: uppercase; font-weight: 700; color: var(--text-secondary); margin-bottom: 0;">End Date</label>
+            <input type="date" id="history-filter-end-date" class="form-control" onchange="applyHistoryFilters()">
+          </div>
+          <button class="btn btn-secondary" onclick="clearHistoryFilters()" style="height: 38px;">Clear Filters</button>
         </div>
 
         <div class="history-table-wrapper">
@@ -527,6 +641,7 @@
                 <th>Registration</th>
                 <th>Email</th>
                 <th>Mobile</th>
+                <th>Linked</th>
                 <th style="text-align: center;">Actions</th>
               </tr>
             </thead>
@@ -611,6 +726,37 @@
           </div>
         </div>
 
+        <!-- Company Selector & Manager -->
+        <div class="settings-section">
+          <div class="settings-title"
+            style="display: flex; align-items: center; justify-content: space-between; width: 100%;">
+            <span>🏢 Manage Company Profiles</span>
+            <span id="editing-company-badge" class="badge"
+              style="background-color: var(--accent-primary); color: #fff; font-size: 11px; padding: 4px 8px; border-radius: var(--radius-sm); font-weight: 600;">Editing
+              Existing Profile</span>
+          </div>
+
+          <div class="form-grid" style="align-items: flex-end;">
+            <div class="form-group col-6">
+              <label class="form-label" for="edit-company-select">Select Company Profile to Edit</label>
+              <select class="form-control" id="edit-company-select" onchange="onEditCompanySelectChange()">
+                <!-- Populated dynamically -->
+              </select>
+            </div>
+
+            <div class="form-group col-6" style="flex-direction: row; gap: 8px; align-items: center;">
+              <button class="btn btn-primary" id="btn-create-company" onclick="startNewCompanyForm()"
+                style="height: 38px; font-weight: 500;">
+                ➕ Create New Company Profile
+              </button>
+              <button class="btn btn-danger" id="btn-cancel-create-company" onclick="cancelNewCompanyForm()"
+                style="display: none; height: 38px; font-weight: 500; padding: 0 16px;" title="Cancel Creating Company">
+                ❌ Cancel
+              </button>
+            </div>
+          </div>
+        </div>
+
         <!-- Seller Business Profile -->
         <div class="settings-section">
           <div class="settings-title">
@@ -621,6 +767,11 @@
             <div class="form-group col-3">
               <label class="form-label" for="seller-ntn">Seller NTN *</label>
               <input class="form-control" type="text" id="seller-ntn" placeholder="e.g. 0786909-7">
+            </div>
+
+            <div class="form-group col-3">
+              <label class="form-label" for="seller-strn">Seller STRN</label>
+              <input class="form-control" type="text" id="seller-strn" placeholder="e.g. 12-34-5678-901-23">
             </div>
 
             <div class="form-group col-6">
@@ -641,9 +792,20 @@
               </select>
             </div>
 
-            <div class="form-group col-12">
+            <div class="form-group col-9">
               <label class="form-label" for="seller-address">Seller Registered Business Address *</label>
               <input class="form-control" type="text" id="seller-address" placeholder="Physical Address">
+            </div>
+
+            <div class="form-group col-12" style="margin-top: 10px; display: flex; align-items: center; gap: 20px; flex-wrap: wrap;">
+              <div style="flex: 1; min-width: 250px;">
+                <label class="form-label" for="seller-logo-input">Seller Company Logo</label>
+                <input class="form-control" type="file" id="seller-logo-input" accept="image/*" style="padding: 4px 8px; font-size: 12px; background: var(--bg-input); border-color: var(--border-color); color: var(--text-primary);">
+              </div>
+              <div id="seller-logo-preview-container" style="display: none; align-items: center; gap: 12px;">
+                <img id="seller-logo-preview" src="" alt="Company Logo" style="max-height: 50px; max-width: 150px; object-fit: contain; border: 1px solid var(--border-color); padding: 4px; background: white; border-radius: 4px;">
+                <button type="button" class="btn btn-danger" onclick="removeSellerLogo()" style="height: 30px; font-size: 11px; padding: 0 16px; font-weight: 500;">Remove Logo</button>
+              </div>
             </div>
           </div>
         </div>
@@ -681,64 +843,159 @@
         <!-- App Personalization (Themes) -->
         <div class="settings-section">
           <div class="settings-title">
-            <span>🎨 Application Personalization & Themes</span>
+            <span>🎨 Application Theme</span>
           </div>
-
           <div class="form-grid">
-            <div class="form-group col-12">
-              <label class="form-label" style="margin-bottom: 8px;">Select Application Theme</label>
-              <div class="theme-picker-container">
+            <div class="form-group col-12" style="gap: 12px; align-items: flex-start;">
+              <label class="form-label" style="margin-bottom: 2px;">
+                Active Theme: <strong id="current-theme-name-display" style="color: var(--accent-primary);">Midnight
+                  Abyss</strong>
+              </label>
+              <div style="display: flex; flex-wrap: wrap; gap: 12px; align-items: center; padding: 4px 0;">
+                <!-- Midnight Abyss -->
                 <div class="theme-card active" id="theme-midnight-abyss" onclick="applyAndSetTheme('midnight-abyss')"
-                  style="flex: 1; min-width: 140px; cursor: pointer; padding: 16px; border-radius: var(--radius-md); border: 2px solid var(--border-color); background: hsl(224, 71%, 4%); text-align: center;">
-                  <div
-                    style="width: 24px; height: 24px; border-radius: 50%; background: linear-gradient(135deg, hsl(250, 89%, 65%) 0%, hsl(263, 90%, 55%) 100%); margin: 0 auto 10px auto;">
-                  </div>
-                  <span style="font-size: 13px; font-weight: 600; color: #fff;">Midnight Abyss</span>
+                  title="Midnight Abyss"
+                  style="width: 32px; height: 32px; border-radius: 50%; cursor: pointer; border: 2px solid var(--border-color); background: linear-gradient(135deg, hsl(250, 89%, 65%) 0%, hsl(263, 90%, 55%) 100%); transition: all 0.2s ease;">
                 </div>
+                <!-- Ocean Breeze -->
                 <div class="theme-card" id="theme-ocean-breeze" onclick="applyAndSetTheme('ocean-breeze')"
-                  style="flex: 1; min-width: 140px; cursor: pointer; padding: 16px; border-radius: var(--radius-md); border: 2px solid var(--border-color); background: hsl(220, 60%, 3%); text-align: center;">
-                  <div
-                    style="width: 24px; height: 24px; border-radius: 50%; background: linear-gradient(135deg, hsl(200, 95%, 50%) 0%, hsl(190, 90%, 45%) 100%); margin: 0 auto 10px auto;">
-                  </div>
-                  <span style="font-size: 13px; font-weight: 600; color: #fff;">Ocean Breeze</span>
+                  title="Ocean Breeze"
+                  style="width: 32px; height: 32px; border-radius: 50%; cursor: pointer; border: 2px solid var(--border-color); background: linear-gradient(135deg, hsl(200, 95%, 50%) 0%, hsl(190, 90%, 45%) 100%); transition: all 0.2s ease;">
                 </div>
+                <!-- Emerald Forest -->
                 <div class="theme-card" id="theme-emerald-forest" onclick="applyAndSetTheme('emerald-forest')"
-                  style="flex: 1; min-width: 140px; cursor: pointer; padding: 16px; border-radius: var(--radius-md); border: 2px solid var(--border-color); background: hsl(160, 60%, 2%); text-align: center;">
-                  <div
-                    style="width: 24px; height: 24px; border-radius: 50%; background: linear-gradient(135deg, hsl(150, 80%, 45%) 0%, hsl(165, 85%, 40%) 100%); margin: 0 auto 10px auto;">
-                  </div>
-                  <span style="font-size: 13px; font-weight: 600; color: #fff;">Emerald Forest</span>
+                  title="Emerald Forest"
+                  style="width: 32px; height: 32px; border-radius: 50%; cursor: pointer; border: 2px solid var(--border-color); background: linear-gradient(135deg, hsl(150, 80%, 45%) 0%, hsl(165, 85%, 40%) 100%); transition: all 0.2s ease;">
                 </div>
+                <!-- Sunset Crimson -->
                 <div class="theme-card" id="theme-sunset-crimson" onclick="applyAndSetTheme('sunset-crimson')"
-                  style="flex: 1; min-width: 140px; cursor: pointer; padding: 16px; border-radius: var(--radius-md); border: 2px solid var(--border-color); background: hsl(340, 50%, 3%); text-align: center;">
-                  <div
-                    style="width: 24px; height: 24px; border-radius: 50%; background: linear-gradient(135deg, hsl(15, 90%, 55%) 0%, hsl(350, 85%, 50%) 100%); margin: 0 auto 10px auto;">
-                  </div>
-                  <span style="font-size: 13px; font-weight: 600; color: #fff;">Sunset Crimson</span>
+                  title="Sunset Crimson"
+                  style="width: 32px; height: 32px; border-radius: 50%; cursor: pointer; border: 2px solid var(--border-color); background: linear-gradient(135deg, hsl(15, 90%, 55%) 0%, hsl(350, 85%, 50%) 100%); transition: all 0.2s ease;">
                 </div>
+                <!-- Amethyst Purple -->
                 <div class="theme-card" id="theme-amethyst-purple" onclick="applyAndSetTheme('amethyst-purple')"
-                  style="flex: 1; min-width: 140px; cursor: pointer; padding: 16px; border-radius: var(--radius-md); border: 2px solid var(--border-color); background: hsl(270, 50%, 3%); text-align: center;">
-                  <div
-                    style="width: 24px; height: 24px; border-radius: 50%; background: linear-gradient(135deg, hsl(280, 85%, 60%) 0%, hsl(260, 85%, 55%) 100%); margin: 0 auto 10px auto;">
-                  </div>
-                  <span style="font-size: 13px; font-weight: 600; color: #fff;">Amethyst Purple</span>
+                  title="Amethyst Purple"
+                  style="width: 32px; height: 32px; border-radius: 50%; cursor: pointer; border: 2px solid var(--border-color); background: linear-gradient(135deg, hsl(280, 85%, 60%) 0%, hsl(260, 85%, 55%) 100%); transition: all 0.2s ease;">
                 </div>
+                <!-- Obsidian Onyx -->
                 <div class="theme-card" id="theme-obsidian-onyx" onclick="applyAndSetTheme('obsidian-onyx')"
-                  style="flex: 1; min-width: 140px; cursor: pointer; padding: 16px; border-radius: var(--radius-md); border: 2px solid var(--border-color); background: hsl(0, 0%, 2%); text-align: center;">
-                  <div
-                    style="width: 24px; height: 24px; border-radius: 50%; background: linear-gradient(135deg, hsl(0, 0%, 95%) 0%, hsl(0, 0%, 75%) 100%); margin: 0 auto 10px auto;">
-                  </div>
-                  <span style="font-size: 13px; font-weight: 600; color: #fff;">Obsidian Onyx</span>
+                  title="Obsidian Onyx"
+                  style="width: 32px; height: 32px; border-radius: 50%; cursor: pointer; border: 2px solid var(--border-color); background: linear-gradient(135deg, hsl(0, 0%, 95%) 0%, hsl(0, 0%, 75%) 100%); transition: all 0.2s ease;">
                 </div>
+
+                <!-- Divider line between dark and light modes -->
+                <div style="width: 1px; height: 20px; background-color: var(--border-color); margin: 0 4px;"></div>
+
+                <!-- Crystal Light -->
                 <div class="theme-card" id="theme-crystal-light" onclick="applyAndSetTheme('crystal-light')"
-                  style="flex: 1; min-width: 140px; cursor: pointer; padding: 16px; border-radius: var(--radius-md); border: 2px solid var(--border-color); background: hsl(220, 25%, 97%); text-align: center;">
-                  <div
-                    style="width: 24px; height: 24px; border-radius: 50%; background: linear-gradient(135deg, hsl(250, 84%, 54%) 0%, hsl(263, 80%, 48%) 100%); border: 1px solid hsla(220, 20%, 80%, 0.6); margin: 0 auto 10px auto;">
-                  </div>
-                  <span style="font-size: 13px; font-weight: 600; color: #0f172a;">Crystal Light</span>
+                  title="Crystal Light (Light Mode)"
+                  style="width: 32px; height: 32px; border-radius: 50%; cursor: pointer; border: 2px solid var(--border-color); background: linear-gradient(135deg, hsl(250, 84%, 54%) 0%, hsl(263, 80%, 48%) 100%); transition: all 0.2s ease;">
+                </div>
+                <!-- Ice Breeze -->
+                <div class="theme-card" id="theme-ice-breeze" onclick="applyAndSetTheme('ice-breeze')"
+                  title="Ice Breeze (Light Mode)"
+                  style="width: 32px; height: 32px; border-radius: 50%; cursor: pointer; border: 2px solid var(--border-color); background: linear-gradient(135deg, hsl(200, 95%, 45%) 0%, hsl(190, 90%, 40%) 100%); transition: all 0.2s ease;">
+                </div>
+                <!-- Mint Cream -->
+                <div class="theme-card" id="theme-mint-cream" onclick="applyAndSetTheme('mint-cream')"
+                  title="Mint Cream (Light Mode)"
+                  style="width: 32px; height: 32px; border-radius: 50%; cursor: pointer; border: 2px solid var(--border-color); background: linear-gradient(135deg, hsl(145, 80%, 40%) 0%, hsl(160, 80%, 35%) 100%); transition: all 0.2s ease;">
+                </div>
+                <!-- Sand Dune -->
+                <div class="theme-card" id="theme-sand-dune" onclick="applyAndSetTheme('sand-dune')"
+                  title="Sand Dune (Light Mode)"
+                  style="width: 32px; height: 32px; border-radius: 50%; cursor: pointer; border: 2px solid var(--border-color); background: linear-gradient(135deg, hsl(35, 85%, 45%) 0%, hsl(20, 85%, 45%) 100%); transition: all 0.2s ease;">
                 </div>
               </div>
               <input type="hidden" id="app-theme-val" value="midnight-abyss">
+            </div>
+          </div>
+        </div>
+
+        <!-- License & Subscription Details -->
+        <div class="settings-section">
+          <div class="settings-title">
+            <span>🔑 License & Subscription Status</span>
+          </div>
+          <div class="form-grid">
+            <div class="form-group col-4">
+              <label class="form-label" for="license-email">License Email</label>
+              <input class="form-control" type="text" id="license-email" readonly placeholder="Not Activated"
+                style="background-color: var(--bg-secondary); color: var(--text-secondary);">
+            </div>
+            <div class="form-group col-4">
+              <label class="form-label" for="license-status">Status</label>
+              <input class="form-control" type="text" id="license-status" readonly placeholder="Inactive"
+                style="background-color: var(--bg-secondary); color: var(--text-secondary); font-weight: bold;">
+            </div>
+            <div class="form-group col-4">
+              <label class="form-label" for="license-expiry">Expiration Date</label>
+              <input class="form-control" type="text" id="license-expiry" readonly placeholder="N/A"
+                style="background-color: var(--bg-secondary); color: var(--text-secondary);">
+            </div>
+            <div class="form-group col-12"
+              style="flex-direction: row; gap: 12px; align-items: center; padding-top: 8px;">
+              <button class="btn btn-primary" onclick="openLoginModal()" id="btn-license-activate">🔑 Activate
+                License</button>
+              <button class="btn btn-danger" onclick="logoutLicense()" id="btn-license-logout"
+                style="display: none;">Log Out</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Software Updates Section -->
+        <div class="settings-section">
+          <div class="settings-title">
+            <span>🔄 Software Updates</span>
+          </div>
+          <div class="form-grid">
+            <div class="form-group col-4">
+              <label class="form-label" for="app-current-version">Installed Version</label>
+              <input class="form-control" type="text" id="app-current-version" readonly value="v1.0.6"
+                style="background-color: var(--bg-secondary); color: var(--text-secondary); font-weight: bold;">
+            </div>
+            <div class="form-group col-5">
+              <label class="form-label" for="app-update-status-text">Update Status</label>
+              <input class="form-control" type="text" id="app-update-status-text" readonly value="Up to date"
+                style="background-color: var(--bg-secondary); color: var(--text-secondary);">
+            </div>
+            <div class="form-group col-3" style="display: flex; align-items: flex-end;">
+              <button class="btn btn-secondary" onclick="checkForAppUpdates()" id="btn-check-updates" style="width: 100%;">
+                🔍 Check for Updates
+              </button>
+            </div>
+            <div class="form-group col-12" id="update-download-progress-container" style="display: none;">
+              <label class="form-label" id="update-download-progress-label">Downloading Update: 0%</label>
+              <div style="width: 100%; background: var(--bg-input); border-radius: 4px; overflow: hidden; height: 8px;">
+                <div id="update-download-progress-bar" style="width: 0%; height: 100%; background: var(--accent-primary); transition: width 0.2s;"></div>
+              </div>
+            </div>
+            <div class="form-group col-12" id="update-restart-banner" style="display: none; background: rgba(16, 185, 129, 0.1); border: 1px solid var(--success); padding: 12px 16px; border-radius: var(--radius-md); align-items: center; justify-content: space-between; flex-direction: row;">
+              <span id="update-restart-text" style="color: var(--success); font-weight: 600; font-size: 13px;">Update downloaded and ready to install!</span>
+              <button class="btn btn-primary btn-sm" onclick="installDownloadedUpdate()">Restart to Apply</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Database Backup & Restore -->
+        <div class="settings-section">
+          <div class="settings-title">
+            <span>💾 Database Backup & Restore</span>
+          </div>
+          <div class="form-grid">
+            <div class="form-group col-12" style="flex-direction: row; gap: 12px; align-items: center; padding-top: 8px; flex-wrap: wrap;">
+              <button class="btn btn-secondary" onclick="exportDatabaseBackup()" style="height: 38px; font-weight: 500;">
+                📥 Export Backup File
+              </button>
+              <button class="btn btn-secondary" onclick="triggerImportFileSelect()" style="height: 38px; font-weight: 500;">
+                📤 Import Backup File
+              </button>
+              <input type="file" id="db-import-file-input" accept=".json" onchange="importDatabaseBackup(event)" style="display: none;">
+            </div>
+            <div class="form-group col-12">
+              <p style="font-size: 12px; color: var(--text-secondary); margin-top: 4px; line-height: 1.4;">
+                * Backups are exported as a single secure <strong>.json</strong> file containing all company profiles, customer setup configurations, custom items, tax rates, and drafts/invoices registry.
+              </p>
             </div>
           </div>
         </div>
@@ -757,9 +1014,11 @@
             <h1>Invoice Printing</h1>
             <p>Filter, search, and batch-print compliant invoices</p>
           </div>
-          <button class="btn btn-primary" onclick="printFilteredInvoices()" style="display: flex; align-items: center; gap: 8px;">
-            <svg viewBox="0 0 24 24" style="width: 16px; height: 16px; fill: none; stroke: currentColor; stroke-width: 2;">
-              <path d="M6 9V2h12v7M6 18H4a2 2 0 01-2-2v-5a2 2 0 012-2h16a2 2 0 012 2v5a2 2 0 01-2 2h-2M6 14h12v8H6z"/>
+          <button class="btn btn-primary" onclick="printFilteredInvoices()"
+            style="display: flex; align-items: center; gap: 8px;">
+            <svg viewBox="0 0 24 24"
+              style="width: 16px; height: 16px; fill: none; stroke: currentColor; stroke-width: 2;">
+              <path d="M6 9V2h12v7M6 18H4a2 2 0 01-2-2v-5a2 2 0 012-2h16a2 2 0 012 2v5a2 2 0 01-2 2h-2M6 14h12v8H6z" />
             </svg>
             Print
           </button>
@@ -827,9 +1086,11 @@
             <h1>Sale Invoice Details</h1>
             <p>Detailed sales register of line-item transactions</p>
           </div>
-          <button class="btn btn-primary" onclick="printSalesDetailsReport()" style="display: flex; align-items: center; gap: 8px;">
-            <svg viewBox="0 0 24 24" style="width: 16px; height: 16px; fill: none; stroke: currentColor; stroke-width: 2;">
-              <path d="M6 9V2h12v7M6 18H4a2 2 0 01-2-2v-5a2 2 0 012-2h16a2 2 0 012 2v5a2 2 0 01-2 2h-2M6 14h12v8H6z"/>
+          <button class="btn btn-primary" onclick="printSalesDetailsReport()"
+            style="display: flex; align-items: center; gap: 8px;">
+            <svg viewBox="0 0 24 24"
+              style="width: 16px; height: 16px; fill: none; stroke: currentColor; stroke-width: 2;">
+              <path d="M6 9V2h12v7M6 18H4a2 2 0 01-2-2v-5a2 2 0 012-2h16a2 2 0 012 2v5a2 2 0 01-2 2h-2M6 14h12v8H6z" />
             </svg>
             Print Report
           </button>
@@ -892,6 +1153,118 @@
         </div>
       </section>
 
+      <!-- 10. COMPLIANCE TEST SUITE PANEL -->
+      <section class="content-panel" id="panel-sandbox-test">
+        <div class="panel-header">
+          <div class="panel-title">
+            <h1>FBR Sandbox Compliance Suite</h1>
+            <p>Run all 28 supply chain scenarios against the FBR validation gateway to confirm digital invoicing
+              compliance</p>
+          </div>
+          <div style="display: flex; align-items: center; gap: 15px;">
+            <label style="display: flex; align-items: center; gap: 8px; font-size: 13px; font-weight: 600; cursor: pointer; color: var(--text-primary);">
+              <input type="checkbox" id="chk-sandbox-post" style="width: 15px; height: 15px; cursor: pointer; accent-color: var(--btn-primary-bg);">
+              Post to FBR Sandbox Ledger
+            </label>
+            <button class="btn btn-primary" id="btn-run-sandbox-tests" onclick="runSandboxTestSuite()">
+              ⚡ Run Test Suite
+            </button>
+          </div>
+        </div>
+
+        <!-- Progress Indicator -->
+        <div id="sandbox-test-progress-container"
+          style="display: none; margin-bottom: 20px; background-color: var(--bg-card); padding: 16px; border-radius: var(--radius-lg); border: 1px solid var(--border-color);">
+          <div
+            style="display: flex; justify-content: space-between; margin-bottom: 8px; font-size: 13px; font-weight: 600;">
+            <span id="sandbox-test-progress-text">Running compliance tests...</span>
+            <span id="sandbox-test-progress-percent">0%</span>
+          </div>
+          <div
+            style="width: 100%; height: 8px; background-color: var(--bg-secondary); border-radius: 4px; overflow: hidden;">
+            <div id="sandbox-test-progress-bar"
+              style="width: 0%; height: 100%; background: linear-gradient(90deg, var(--accent-primary) 0%, #10b981 100%); transition: width 0.2s;">
+            </div>
+          </div>
+        </div>
+
+        <!-- Summary Cards -->
+        <div class="dashboard-stats" id="sandbox-test-summary" style="margin-bottom: 20px; display: none;">
+          <div class="stat-card">
+            <div class="stat-card-icon">📋</div>
+            <div class="stat-card-label">Total Scenarios</div>
+            <div class="stat-card-value" id="stat-sandbox-total">28</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-card-icon" style="color: var(--success); background-color: var(--success-glow);">✅</div>
+            <div class="stat-card-label">Passed</div>
+            <div class="stat-card-value" id="stat-sandbox-passed" style="color: var(--success);">0</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-card-icon" style="color: #ef4444; background-color: rgba(239, 68, 68, 0.08);">❌</div>
+            <div class="stat-card-label">Failed</div>
+            <div class="stat-card-value" id="stat-sandbox-failed" style="color: #ef4444;">0</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-card-icon" id="stat-sandbox-status-icon">⏳</div>
+            <div class="stat-card-label">Overall Status</div>
+            <div class="stat-card-value" id="stat-sandbox-status"
+              style="font-size: 18px; color: var(--text-secondary);">Idle</div>
+          </div>
+        </div>
+
+        <!-- Scenario Table -->
+        <div class="setup-table-wrapper">
+          <table class="setup-table">
+            <thead>
+              <tr>
+                <th style="width: 5%; text-align: center;">
+                  <input type="checkbox" id="chk-select-all-scenarios" checked onclick="toggleAllScenarios(this)" style="width: 16px; height: 16px; cursor: pointer; accent-color: var(--btn-primary-bg);" title="Select/Deselect All Scenarios">
+                </th>
+                <th style="width: 10%;">Scenario</th>
+                <th style="width: 32%;">Description</th>
+                <th style="width: 15%; text-align: center;">Gateway Status</th>
+                <th style="width: 28%;">Error / Info</th>
+                <th style="width: 10%; text-align: center;">Payload</th>
+              </tr>
+            </thead>
+            <tbody id="sandbox-test-tbody">
+              <!-- Dynamically populated -->
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      <!-- 11. DRAFTS PANEL -->
+      <section class="content-panel" id="panel-drafts">
+        <div class="panel-header">
+          <div class="panel-title">
+            <h1>Draft Invoices</h1>
+            <p>Manage and resume offline drafted invoices</p>
+          </div>
+          <button class="btn btn-secondary" onclick="switchPanel('history')">⬅️ Back to History Logs</button>
+        </div>
+
+        <div class="setup-table-wrapper">
+          <table class="setup-table">
+            <thead>
+              <tr>
+                <th>Draft Date</th>
+                <th>Reference No.</th>
+                <th>Buyer Name</th>
+                <th>Buyer NTN</th>
+                <th>Grand Total</th>
+                <th>Environment</th>
+                <th style="text-align: center;">Actions</th>
+              </tr>
+            </thead>
+            <tbody id="drafts-list-tbody">
+              <!-- Dynamically populated -->
+            </tbody>
+          </table>
+        </div>
+      </section>
+
     </main>
   </div>
 
@@ -899,7 +1272,7 @@
        MODAL OVERLAY (ADD/EDIT CUSTOMER)
        ========================================== -->
   <div class="modal-overlay" id="customer-modal">
-    <div class="modal-card">
+    <div class="modal-card modal-large">
       <div class="modal-header">
         <span class="modal-title" id="customer-modal-title">Customers Entry</span>
         <div style="display: flex; gap: 8px;">
@@ -910,67 +1283,136 @@
       </div>
       <div class="modal-body">
         <input type="hidden" id="cust-id">
-        <div class="form-grid">
-          <div class="form-group col-3">
-            <label class="form-label" for="cust-id-display">Party #.</label>
-            <input class="form-control" type="text" id="cust-id-display" readonly disabled placeholder="Auto"
-              style="border: 1px dashed var(--border-color); background-color: var(--bg-secondary); color: var(--text-muted);">
+        <div style="display: flex; gap: 28px; align-items: flex-start;">
+
+          <!-- Left Column: Customer Profile Form -->
+          <div style="flex: 1.1; min-width: 0;">
+            <div class="form-grid">
+              <div class="form-group col-3">
+                <label class="form-label" for="cust-id-display">Party #.</label>
+                <input class="form-control" type="text" id="cust-id-display" readonly disabled placeholder="Auto"
+                  style="border: 1px dashed var(--border-color); background-color: var(--bg-secondary); color: var(--text-muted);">
+              </div>
+              <div class="form-group col-9">
+                <label class="form-label" for="cust-name">Party Name *</label>
+                <input class="form-control" type="text" id="cust-name" placeholder="Party Name">
+              </div>
+              <div class="form-group col-12">
+                <label class="form-label" for="cust-address">Address *</label>
+                <input class="form-control" type="text" id="cust-address" placeholder="Physical Address">
+              </div>
+              <div class="form-group col-3">
+                <label class="form-label" for="cust-ntn">NTN/CNIC *</label>
+                <input class="form-control" type="text" id="cust-ntn" placeholder="Registered NTN or CNIC">
+              </div>
+              <div class="form-group col-3">
+                <label class="form-label" for="cust-strn">STRN</label>
+                <input class="form-control" type="text" id="cust-strn" placeholder="STRN (optional)">
+              </div>
+              <div class="form-group col-3">
+                <label class="form-label" for="cust-email">Email</label>
+                <input class="form-control" type="email" id="cust-email" placeholder="Email Address">
+              </div>
+              <div class="form-group col-3">
+                <label class="form-label" for="cust-mobile">Mobile No</label>
+                <input class="form-control" type="text" id="cust-mobile" placeholder="Mobile Number">
+              </div>
+              <div class="form-group col-4">
+                <label class="form-label" for="cust-party-type">Party Type *</label>
+                <select class="form-control" id="cust-party-type">
+                  <option value="COMMISSION">COMMISSION</option>
+                  <option value="EXPORT">EXPORT</option>
+                  <option value="FAISALABAD">FAISALABAD</option>
+                  <option value="INTERIOR SINDH">INTERIOR SINDH</option>
+                  <option value="KARACHI">KARACHI</option>
+                  <option value="LAHORE ZONE">LAHORE ZONE</option>
+                  <option value="LHR SURRANDING">LHR SURRANDING</option>
+                  <option value="LOCAL">LOCAL</option>
+                  <option value="MULTAN">MULTAN</option>
+                  <option value="PESHAWAR">PESHAWAR</option>
+                  <option value="RAWALPINDI">RAWALPINDI</option>
+                  <option value="SAHIWAL">SAHIWAL</option>
+                </select>
+              </div>
+              <div class="form-group col-4">
+                <label class="form-label" for="cust-province">Province *</label>
+                <select class="form-control" id="cust-province">
+                  <option value="AZAD JAMMU AND KASHMIR">AZAD JAMMU AND KASHMIR</option>
+                  <option value="BALOCHISTAN">BALOCHISTAN</option>
+                  <option value="CAPITAL TERRITORY">CAPITAL TERRITORY</option>
+                  <option value="GILGIT BALTISTAN">GILGIT BALTISTAN</option>
+                  <option value="KHYBER PAKHTUNKHWA">KHYBER PAKHTUNKHWA</option>
+                  <option value="PUNJAB">PUNJAB</option>
+                  <option value="SINDH">SINDH</option>
+                </select>
+              </div>
+              <div class="form-group col-4">
+                <label class="form-label" for="cust-reg-type">Registration Type *</label>
+                <select class="form-control" id="cust-reg-type">
+                  <option value="Registered">Registered</option>
+                  <option value="Unregistered">Unregistered</option>
+                </select>
+              </div>
+
+              <div class="form-group col-12" style="margin-top: 10px; display: flex; align-items: center; gap: 20px; flex-wrap: wrap;">
+                <div style="flex: 1; min-width: 250px;">
+                  <label class="form-label" for="cust-logo-input">Customer Company Logo</label>
+                  <input class="form-control" type="file" id="cust-logo-input" accept="image/*" style="padding: 4px 8px; font-size: 12px; background: var(--bg-input); border-color: var(--border-color); color: var(--text-primary);">
+                </div>
+                <div id="cust-logo-preview-container" style="display: none; align-items: center; gap: 12px;">
+                  <img id="cust-logo-preview" src="" alt="Customer Logo" style="max-height: 50px; max-width: 150px; object-fit: contain; border: 1px solid var(--border-color); padding: 4px; background: white; border-radius: 4px;">
+                  <button type="button" class="btn btn-danger" onclick="removeCustLogo()" style="height: 30px; font-size: 11px; padding: 0 16px; font-weight: 500;">Remove Logo</button>
+                </div>
+              </div>
+            </div>
+
+            <!-- Linked Taxes Section (relocated below credentials) -->
+            <div style="margin-top: 24px; border-top: 1px dashed var(--border-color); padding-top: 20px;">
+              <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px;">
+                <h3 style="margin: 0; font-size: 14px; color: var(--text-primary);">🏷️ Linked Taxes</h3>
+                <button class="btn btn-secondary btn-sm" onclick="addCustomerLinkedTaxRow()"
+                  style="padding: 4px 12px; font-size: 12px;">+ Add Tax</button>
+              </div>
+              <table class="setup-table" style="font-size: 12px;">
+                <thead>
+                  <tr>
+                    <th style="width: 50%;">Tax Type</th>
+                    <th style="width: 30%;">Rate (%)</th>
+                    <th style="width: 20%; text-align: center;">Remove</th>
+                  </tr>
+                </thead>
+                <tbody id="cust-linked-taxes-tbody">
+                  <!-- Dynamically populated -->
+                </tbody>
+              </table>
+            </div>
           </div>
-          <div class="form-group col-9">
-            <label class="form-label" for="cust-name">Party Name *</label>
-            <input class="form-control" type="text" id="cust-name" placeholder="Party Name">
-          </div>
-          <div class="form-group col-12">
-            <label class="form-label" for="cust-address">Address *</label>
-            <input class="form-control" type="text" id="cust-address" placeholder="Physical Address">
-          </div>
-          <div class="form-group col-4">
-            <label class="form-label" for="cust-ntn">NTN/CNIC *</label>
-            <input class="form-control" type="text" id="cust-ntn" placeholder="Registered NTN or CNIC">
-          </div>
-          <div class="form-group col-4">
-            <label class="form-label" for="cust-email">Email</label>
-            <input class="form-control" type="email" id="cust-email" placeholder="Email Address">
-          </div>
-          <div class="form-group col-4">
-            <label class="form-label" for="cust-mobile">Mobile No</label>
-            <input class="form-control" type="text" id="cust-mobile" placeholder="Mobile Number">
-          </div>
-          <div class="form-group col-4">
-            <label class="form-label" for="cust-party-type">Party Type *</label>
-            <select class="form-control" id="cust-party-type">
-              <option value="COMMISSION">COMMISSION</option>
-              <option value="EXPORT">EXPORT</option>
-              <option value="FAISALABAD">FAISALABAD</option>
-              <option value="INTERIOR SINDH">INTERIOR SINDH</option>
-              <option value="KARACHI">KARACHI</option>
-              <option value="LAHORE ZONE">LAHORE ZONE</option>
-              <option value="LHR SURRANDING">LHR SURRANDING</option>
-              <option value="LOCAL">LOCAL</option>
-              <option value="MULTAN">MULTAN</option>
-              <option value="PESHAWAR">PESHAWAR</option>
-              <option value="RAWALPINDI">RAWALPINDI</option>
-              <option value="SAHIWAL">SAHIWAL</option>
-            </select>
-          </div>
-          <div class="form-group col-4">
-            <label class="form-label" for="cust-province">Province *</label>
-            <select class="form-control" id="cust-province">
-              <option value="AZAD JAMMU AND KASHMIR">AZAD JAMMU AND KASHMIR</option>
-              <option value="BALOCHISTAN">BALOCHISTAN</option>
-              <option value="CAPITAL TERRITORY">CAPITAL TERRITORY</option>
-              <option value="GILGIT BALTISTAN">GILGIT BALTISTAN</option>
-              <option value="KHYBER PAKHTUNKHWA">KHYBER PAKHTUNKHWA</option>
-              <option value="PUNJAB">PUNJAB</option>
-              <option value="SINDH">SINDH</option>
-            </select>
-          </div>
-          <div class="form-group col-4">
-            <label class="form-label" for="cust-reg-type">Registration Type *</label>
-            <select class="form-control" id="cust-reg-type">
-              <option value="Registered">Registered</option>
-              <option value="Unregistered">Unregistered</option>
-            </select>
+
+          <!-- Right Column: Linked Items -->
+          <div
+            style="flex: 0.9; min-width: 0; display: flex; flex-direction: column; gap: 20px; border-left: 1px solid var(--border-color); padding-left: 28px;">
+
+            <!-- Linked Items Section -->
+            <div>
+              <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px;">
+                <h3 style="margin: 0; font-size: 14px; color: var(--text-primary);">📦 Linked Items</h3>
+                <button class="btn btn-secondary btn-sm" onclick="addCustomerLinkedItemRow()"
+                  style="padding: 4px 12px; font-size: 12px;">+ Add Item</button>
+              </div>
+              <table class="setup-table" style="font-size: 12px;">
+                <thead>
+                  <tr>
+                    <th style="width: 50%;">Product Item</th>
+                    <th style="width: 30%;">Rate (PKR)</th>
+                    <th style="width: 20%; text-align: center;">Remove</th>
+                  </tr>
+                </thead>
+                <tbody id="cust-linked-items-tbody">
+                  <!-- Dynamically populated -->
+                </tbody>
+              </table>
+            </div>
+
           </div>
         </div>
       </div>
@@ -1002,7 +1444,6 @@
             <label class="form-label" for="item-uom">Unit of Measure (UOM) *</label>
             <select class="form-control" id="item-uom">
               <option value="Square Metre">Square Metre</option>
-              <option value="KILOGRAM">KILOGRAM</option>
               <option value="Numbers, pieces, units">Numbers, pieces, units</option>
               <option value="Liter">Liter</option>
               <option value="Meter">Meter</option>
@@ -1049,6 +1490,18 @@
             <label class="form-label" for="item-sroserial">SRO Item Serial No</label>
             <input class="form-control" type="text" id="item-sroserial" placeholder="e.g. 100">
           </div>
+          <div class="form-group col-4">
+            <label class="form-label" for="item-box-qty">Box Quantity</label>
+            <input class="form-control" type="number" step="1" min="0" id="item-box-qty" placeholder="e.g. 10">
+          </div>
+          <div class="form-group col-4">
+            <label class="form-label" for="item-barcode">Barcode</label>
+            <input class="form-control" type="text" id="item-barcode" placeholder="Barcode">
+          </div>
+          <div class="form-group col-4">
+            <label class="form-label" for="item-code">Item Code</label>
+            <input class="form-control" type="text" id="item-code" placeholder="Item Code">
+          </div>
           <div class="form-group col-12" style="display: none;" id="item-retailprice-container">
             <label class="form-label" for="item-retailprice">Default Retail Price (per unit) *</label>
             <input class="form-control" type="number" step="0.01" min="0" id="item-retailprice" value="0.00"
@@ -1081,16 +1534,17 @@
         <input type="hidden" id="tax-id">
         <div class="form-grid">
           <div class="form-group col-6">
-            <label class="form-label" for="tax-typename">Tax Type *</label>
+            <label class="form-label" for="tax-typename">Tax Name *</label>
             <input class="form-control" type="text" id="tax-typename" placeholder="e.g. Standard 18%">
           </div>
-          <div class="form-group col-3">
+          <div class="form-group col-6">
             <label class="form-label" for="tax-rate">Rate (%) *</label>
             <input class="form-control" type="number" step="0.01" min="0" id="tax-rate" placeholder="e.g. 18" value="0">
           </div>
-          <div class="form-group col-3">
+          <div class="form-group col-3" style="display: none;">
             <label class="form-label" for="tax-fixed-rate">Fixed Tax (Rs/Unit)</label>
-            <input class="form-control" type="number" step="0.01" min="0" id="tax-fixed-rate" placeholder="e.g. 60" value="0">
+            <input class="form-control" type="number" step="0.01" min="0" id="tax-fixed-rate" placeholder="e.g. 60"
+              value="0">
           </div>
           <div class="form-group col-6">
             <label class="form-label" for="tax-nature">Tax Nature *</label>
@@ -1105,20 +1559,14 @@
           </div>
           <div class="form-group col-6">
             <label class="form-label" for="tax-category">Tax Type *</label>
-            <div style="display: flex; align-items: center; gap: 12px; width: 100%;">
-              <select class="form-control" id="tax-category" style="flex-grow: 1;">
-                <option value="Extra Tax">Extra Tax</option>
-                <option value="FED Tax">FED Tax</option>
-                <option value="Further Tax">Further Tax</option>
-                <option value="Income Tax">Income Tax</option>
-                <option value="Sales Tax">Sales Tax</option>
-                <option value="Sales With Held Tax">Sales With Held Tax</option>
-              </select>
-              <div style="display: flex; align-items: center; gap: 6px; white-space: nowrap; padding-top: 4px;">
-                <input type="checkbox" id="tax-whtax" style="width: 16px; height: 16px; margin: 0; cursor: pointer;">
-                <label class="form-label" for="tax-whtax" style="cursor: pointer; margin-bottom: 0;">WH Tax</label>
-              </div>
-            </div>
+            <select class="form-control" id="tax-category">
+              <option value="Extra Tax">Extra Tax</option>
+              <option value="FED Tax">FED Tax</option>
+              <option value="Further Tax">Further Tax</option>
+              <option value="Income Tax">Income Tax</option>
+              <option value="Sales Tax">Sales Tax</option>
+              <option value="Sales With Held Tax">Sales With Held Tax</option>
+            </select>
           </div>
         </div>
       </div>
@@ -1134,145 +1582,141 @@
        ========================================== -->
   <div class="modal-overlay" id="receipt-modal">
     <div class="modal-card modal-large">
-      <div class="modal-header">
-        <span class="modal-title">🖨️ Compliant Invoice Print Preview</span>
+      <div class="modal-header" style="display: flex; justify-content: space-between; align-items: center; gap: 20px; flex-wrap: wrap;">
+        <div style="display: flex; align-items: center; gap: 16px; flex-wrap: wrap;">
+          <span class="modal-title" style="margin: 0;">🖨️ Compliant Invoice Print Preview</span>
+          <div style="display: flex; align-items: center; gap: 8px;">
+            <label for="receipt-template-select" style="font-size: 11px; font-weight: 600; color: #8892b0; margin-bottom: 0; white-space: nowrap;">Layout Template:</label>
+            <select id="receipt-template-select" class="form-control" onchange="onTemplateChange()" style="width: 170px; height: 30px; font-size: 11px; padding: 2px 8px; background: #111a2e; border: 1px solid #1e293b; color: #f8fafc; border-radius: 4px; display: inline-block;">
+              <!-- Loaded dynamically via JS -->
+            </select>
+            <button class="btn btn-secondary" onclick="openTemplatesFolder()" style="height: 30px; font-size: 11px; padding: 0 10px; display: flex; align-items: center; gap: 4px; background: #1e293b; border-color: #334155;" title="Open templates folder to add, delete or customize layouts">
+              📂 Edit Templates
+            </button>
+          </div>
+        </div>
         <button class="modal-close" onclick="closeReceiptModal()">&times;</button>
       </div>
 
-      <div class="modal-body" style="background-color: #222; padding: 24px; overflow-x: auto;">
+      <div class="modal-body">
 
         <!-- FBR Official Landscape Invoice -->
-        <div class="fbr-invoice-card" id="printable-receipt-card">
-          <!-- Top Header block -->
-          <div class="invoice-top-header">
-            <div class="seller-big-name" id="receipt-seller-name-header">SELLER BUSINESS NAME</div>
-            <div class="header-right-logos">
-              <!-- FBR Official Seal & Digital Invoicing Badge -->
-              <img src="fbrdigitalinvoicesystemlogo.png" alt="FBR Digital Invoicing System Logo" width="76" height="76"
-                style="display: block; object-fit: contain;">
-              <!-- QR Code -->
-              <div class="receipt-qrcode-box" id="qrcode"></div>
+        <div class="fbr-invoice-card" id="printable-receipt-card"
+          style="background-color: #ffffff; color: #000000; padding: 20px; font-family: Arial, sans-serif; font-size: 10px; line-height: 1.3;">
+          <!-- FBR Compliance Top Header Banner -->
+          <div class="print-fbr-banner"
+            style="display: flex; justify-content: space-between; align-items: center; border: 1px solid #000; padding: 6px 12px; margin-bottom: 12px; background-color: #fff;">
+            <div style="flex: 1; display: flex; align-items: center; gap: 8px;">
+              <img src="fbrdigitalinvoicesystemlogo.png" alt="FBR Digital Invoicing System Logo" width="160" height="60"
+                style="object-fit: contain;">
+            </div>
+            <div style="flex: 1; text-align: center;">
+              <div style="font-weight: bold; font-size: 13px; text-transform: uppercase;">FBR Invoice #</div>
+              <div style="font-family: monospace; font-size: 13px; font-weight: bold; margin-top: 4px;"
+                id="receipt-fbr-invoice-no">PENDING POSTING</div>
+            </div>
+            <div style="flex: 1; display: flex; justify-content: flex-end;">
+              <div class="receipt-qrcode-box" id="qrcode" style="width: 76px; height: 76px;"></div>
             </div>
           </div>
 
-          <!-- Info Columns grid -->
-          <div class="info-columns-grid">
-            <div class="info-col">
-              <h3>Seller Information</h3>
-              <div class="info-line">
-                <span class="info-label">Business Name:</span>
-                <span class="info-value" id="receipt-seller-name">SELLER BUSINESS NAME</span>
-              </div>
-              <div class="info-line">
-                <span class="info-label">Registration No.:</span>
-                <span class="info-value" id="receipt-seller-ntn">3653258</span>
-              </div>
-              <div class="info-line">
-                <span class="info-label">Province:</span>
-                <span class="info-value" id="receipt-seller-province">PUNJAB</span>
-              </div>
-              <div class="info-line">
-                <span class="info-label">Source Invoice No.:</span>
-                <span class="info-value" id="receipt-source-invoice">-</span>
-              </div>
+          <!-- Seller Information Box -->
+          <div style="border: 1px solid #000; padding: 10px; margin-bottom: 12px;">
+            <div style="font-size: 14px; font-weight: bold; margin-bottom: 4px;" id="receipt-seller-name-header">SELLER
+              BUSINESS NAME</div>
+            <div style="margin-bottom: 4px; font-size: 10px;" id="receipt-seller-address">-</div>
+            <div style="display: flex; gap: 40px; font-size: 10px;">
+              <div><strong>NTN : </strong><span id="receipt-seller-ntn">-</span></div>
+              <div><strong>STRN : </strong><span id="receipt-seller-strn">-</span></div>
+            </div>
+          </div>
+
+          <!-- Side-by-Side: Bill To & Sales Invoice Details Table -->
+          <div style="display: flex; justify-content: space-between; margin-bottom: 12px; gap: 16px;">
+            <!-- Bill To Box (Bordered) -->
+            <div style="flex: 1.5; border: 1px solid #000; padding: 8px;">
+              <div
+                style="font-weight: bold; font-size: 11px; border-bottom: 1px solid #000; padding-bottom: 4px; margin-bottom: 6px;">
+                BILL TO :</div>
+              <div style="font-weight: bold; font-size: 11px; margin-bottom: 4px;" id="receipt-buyer-name">BUYER
+                BUSINESS NAME</div>
+              <div style="margin-bottom: 4px; font-size: 10px;" id="receipt-buyer-address">BUYER ADDRESS</div>
+              <div style="font-size: 10px;"><strong>NTN : </strong><span id="receipt-buyer-ntn">3647820</span></div>
             </div>
 
-            <div class="info-col">
-              <h3>Buyer Information</h3>
-              <div class="info-line">
-                <span class="info-label">Business Name:</span>
-                <span class="info-value" id="receipt-buyer-name">BUYER BUSINESS NAME</span>
-              </div>
-              <div class="info-line">
-                <span class="info-label">Registration No.:</span>
-                <span class="info-value" id="receipt-buyer-ntn">1000000000000</span>
-              </div>
-              <div class="info-line">
-                <span class="info-label">Province:</span>
-                <span class="info-value" id="receipt-buyer-province">SINDH</span>
-              </div>
-            </div>
-
-            <div class="info-col">
-              <h3>Invoice Summary</h3>
-              <div class="info-line font-bold">
-                <span class="info-label">FBR Invoice No.:</span>
-                <span class="info-value" id="receipt-fbr-invoice-no">PENDING POSTING</span>
-              </div>
-              <div class="info-line">
-                <span class="info-label">Invoice Date:</span>
-                <span class="info-value" id="receipt-invoice-date">2026-05-23</span>
-              </div>
-              <div class="info-line">
-                <span class="info-label">Invoice Type:</span>
-                <span class="info-value" id="receipt-invoice-type">Sale Invoice</span>
-              </div>
-              <div class="info-line">
-                <span class="info-label">Tax Period:</span>
-                <span class="info-value" id="receipt-tax-period">202605</span>
-              </div>
-              <div class="info-line">
-                <span class="info-label">Insertion Date:</span>
-                <span class="info-value" id="receipt-insertion-date">2026-05-23</span>
-              </div>
-              <div class="info-line">
-                <span class="info-label">Status:</span>
-                <span class="info-value font-green" id="receipt-status">Valid</span>
-              </div>
+            <!-- Sales Invoice Info Table -->
+            <div style="flex: 1; border: 1px solid #000;">
+              <table style="width: 100%; border-collapse: collapse; text-align: center; font-size: 10px; height: 100%;">
+                <thead>
+                  <tr>
+                    <th colspan="3"
+                      style="border-bottom: 1px solid #000; padding: 6px; font-size: 13px; font-weight: bold; background-color: #f1f1f1;">
+                      Sales Invoice</th>
+                  </tr>
+                  <tr style="background-color: #f9f9f9; border-bottom: 1px solid #000;">
+                    <th style="border-right: 1px solid #000; padding: 4px; font-weight: bold; width: 33%;">Date</th>
+                    <th style="border-right: 1px solid #000; padding: 4px; font-weight: bold; width: 33%;">Invoice #
+                    </th>
+                    <th style="padding: 4px; font-weight: bold; width: 34%;">Manual Inv #</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td style="border-right: 1px solid #000; padding: 6px;" id="receipt-invoice-date">-</td>
+                    <td style="border-right: 1px solid #000; padding: 6px;" id="receipt-local-invoice-id">-</td>
+                    <td style="padding: 6px;" id="receipt-manual-invoice-no">-</td>
+                  </tr>
+                </tbody>
+              </table>
             </div>
           </div>
 
           <!-- Items Table -->
-          <div class="invoice-table-container">
-            <table class="invoice-print-table">
+          <div class="invoice-table-container" style="border: 1px solid #000; margin-bottom: 12px;">
+            <table class="invoice-print-table" style="width: 100%; border-collapse: collapse; font-size: 9px;">
               <thead>
-                <tr>
-                  <th>Sr. No.</th>
-                  <th>HS Code</th>
-                  <th>HS Code Description</th>
-                  <th>Product Description</th>
-                  <th>Sales Type</th>
-                  <th>Quantity</th>
-                  <th>UoM</th>
-                  <th>Rate</th>
-                  <th>Sales Value</th>
-                  <th>Retail Price</th>
-                  <th>Sales Tax</th>
-                  <th>Extra Tax</th>
-                  <th>Further Tax</th>
-                  <th>FED</th>
-                  <th>ST WHT</th>
-                  <th>Discount</th>
-                  <th>SRO / Schedule No.</th>
-                  <th>SRO Item Sr. No.</th>
-                  <th>Status</th>
+                <tr style="background-color: #f1f1f1;">
+                  <th style="border: 1px solid #000; padding: 6px; width: 4%;">Sr #</th>
+                  <th style="border: 1px solid #000; padding: 6px; width: 10%;">H.S Code</th>
+                  <th style="border: 1px solid #000; padding: 6px; width: 25%;">Description</th>
+                  <th style="border: 1px solid #000; padding: 6px; width: 5%;">Qty</th>
+                  <th style="border: 1px solid #000; padding: 6px; width: 10%;">Rate</th>
+                  <th style="border: 1px solid #000; padding: 6px; width: 10%;">Excl.Amt</th>
+                  <th style="border: 1px solid #000; padding: 6px; width: 8%;">Retail</th>
+                  <th style="border: 1px solid #000; padding: 6px; width: 10%;">Fixed Notify Value</th>
+                  <th style="border: 1px solid #000; padding: 6px; width: 6%;">Tax %</th>
+                  <th style="border: 1px solid #000; padding: 6px; width: 8%;">Tax Amt</th>
+                  <th style="border: 1px solid #000; padding: 6px; width: 12%;">Incl. Amount</th>
                 </tr>
               </thead>
               <tbody id="receipt-items-tbody">
                 <!-- Dynamically Rendered -->
               </tbody>
-              <tfoot>
-                <tr class="totals-row">
-                  <td colspan="8" style="text-align: right; font-weight: bold; padding: 6px;">Total:</td>
-                  <td id="receipt-total-sales-value" style="text-align: right; font-weight: bold; padding: 6px;">0.00</td>
-                  <td id="receipt-total-retail" style="text-align: right; font-weight: bold; padding: 6px;">0.00</td>
-                  <td id="receipt-total-sales-tax" style="text-align: right; font-weight: bold; padding: 6px;">0.00</td>
-                  <td id="receipt-total-extra-tax" style="text-align: right; font-weight: bold; padding: 6px;">0.00</td>
-                  <td id="receipt-total-further-tax" style="text-align: right; font-weight: bold; padding: 6px;">0.00</td>
-                  <td id="receipt-total-fed" style="text-align: right; font-weight: bold; padding: 6px;">0.00</td>
-                  <td id="receipt-total-wht" style="text-align: right; font-weight: bold; padding: 6px;">0.00</td>
-                  <td id="receipt-total-discount" style="text-align: right; font-weight: bold; padding: 6px;">0.00</td>
-                  <td colspan="3"></td>
-                </tr>
-              </tfoot>
             </table>
           </div>
 
-          <!-- Invoice Bottom Footer -->
-          <div class="invoice-bottom-footer">
-            <div class="footer-note">In the above invoices, "E" denotes that the invoice has been edited, whereas "C"
-              indicates that the invoice has been cancelled.</div>
-            <div class="footer-page">Page 1 of 1</div>
+          <!-- Bottom Summary block: side-by-side flex layout -->
+          <div
+            style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 12px; gap: 24px;">
+            <!-- Left block: Amount in Words -->
+            <div style="flex: 1.5; font-size: 11px;">
+              <strong>Amount in Words: </strong>
+              <span id="receipt-amount-in-words" style="text-decoration: underline; margin-left: 8px;"></span>
+            </div>
+            <!-- Right block: Totals Box -->
+            <div style="flex: 1; border: 1px solid #000;">
+              <table style="width: 100%; border-collapse: collapse; font-size: 10px;" id="receipt-totals-table">
+                <!-- Dynamically Rendered -->
+              </table>
+            </div>
+          </div>
+
+          <!-- Footer/Prepared By section -->
+          <div style="margin-top: 60px;">
+            <div
+              style="display: inline-block; text-align: center; width: 180px; border-top: 1px solid #000; padding-top: 6px; font-weight: bold; font-size: 11px;">
+              Prepared By
+            </div>
           </div>
         </div>
 
@@ -1296,11 +1740,93 @@
         <button class="modal-close" onclick="closeConfirmModal()">&times;</button>
       </div>
       <div class="modal-body" style="padding: 20px;">
-        <p id="confirm-modal-message" style="line-height: 1.5; font-size: 14px; color: var(--text-secondary); margin: 0;"></p>
+        <p id="confirm-modal-message"
+          style="line-height: 1.5; font-size: 14px; color: var(--text-secondary); margin: 0;"></p>
       </div>
       <div class="modal-footer" style="padding: 12px 20px;">
         <button class="btn btn-secondary" onclick="confirmModalCallback(false)">Cancel</button>
         <button class="btn btn-danger" id="confirm-modal-yes-btn" onclick="confirmModalCallback(true)">Delete</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ==========================================
+       MODAL OVERLAY (VIEW PAYLOAD)
+       ========================================== -->
+  <div class="modal-overlay" id="payload-modal">
+    <div class="modal-card" style="max-width: 700px; width: 90%;">
+      <div class="modal-header">
+        <span class="modal-title" id="payload-modal-title">FBR Scenario JSON Payload</span>
+        <button class="modal-close" onclick="closePayloadModal()">&times;</button>
+      </div>
+      <div class="modal-body" style="padding: 16px;">
+        <pre
+          style="background-color: var(--bg-secondary); border: 1px solid var(--border-color); border-radius: var(--radius-md); padding: 16px; overflow: auto; max-height: 450px; font-family: monospace; font-size: 12px; color: var(--text-primary);"><code id="payload-modal-code"></code></pre>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-secondary" onclick="closePayloadModal()">Close</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ==========================================
+       MODAL OVERLAY (LICENSE LOGIN & ACTIVATION)
+       ========================================== -->
+  <div class="modal-overlay" id="license-login-modal" style="z-index: 100000;">
+    <div class="modal-card" style="max-width: 400px;">
+      <div class="modal-header">
+        <span class="modal-title">🔐 Activate Client License</span>
+        <button class="modal-close" onclick="closeLoginModal()">&times;</button>
+      </div>
+      <div class="modal-body" style="padding: 20px;">
+        <div style="text-align: center; margin-bottom: 20px;">
+          <h3 style="margin: 0 0 6px 0; color: var(--accent-primary);">FBR Invoicing Suite</h3>
+          <p style="margin: 0; font-size: 12px; color: var(--text-muted);">Log in with your activation credentials to
+            activate this application.</p>
+        </div>
+        <div class="form-grid" style="gap: 16px;">
+          <div class="form-group col-12">
+            <label class="form-label" for="login-email">Client Email Address *</label>
+            <input class="form-control" type="email" id="login-email" placeholder="client@company.com" required>
+          </div>
+          <div class="form-group col-12">
+            <label class="form-label" for="login-key">License Key / Password *</label>
+            <input class="form-control" type="password" id="login-key" placeholder="Enter activation key" required>
+          </div>
+          <div id="login-error-msg"
+            style="color: #ef4444; font-size: 12px; font-weight: bold; text-align: center; display: none; width: 100%;">
+            Incorrect email or password.
+          </div>
+        </div>
+      </div>
+      <div class="modal-footer" style="padding: 12px 20px; display: flex; justify-content: flex-end; gap: 10px;">
+        <button class="btn btn-secondary" onclick="closeLoginModal()">Cancel</button>
+        <button class="btn btn-primary" onclick="submitLicenseLogin()" id="btn-submit-login">Activate License</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ==========================================
+       LICENSE LOCK OVERLAY (FULL SCREEN)
+       ========================================== -->
+  <div class="modal-overlay" id="license-lock-overlay"
+    style="display: none; z-index: 99999; background-color: rgba(10, 15, 30, 0.96); backdrop-filter: blur(10px); position: fixed; top: 0; left: 0; right: 0; bottom: 0; align-items: center; justify-content: center;">
+    <div class="modal-card"
+      style="max-width: 450px; border: 2px solid #ef4444; text-align: center; box-shadow: 0 0 30px rgba(239, 68, 68, 0.25);">
+      <div class="modal-body" style="padding: 40px 30px;">
+        <div style="font-size: 64px; margin-bottom: 20px;">🔒</div>
+        <h2 style="margin: 0 0 10px 0; color: #ef4444; font-size: 22px;">License Activation Required</h2>
+        <p id="license-lock-message"
+          style="margin: 0 0 24px 0; font-size: 14px; color: var(--text-secondary); line-height: 1.6;">
+          Your application license has expired, is inactive, or clock tampering was detected. Please contact your system
+          administrator to renew or activate your subscription.
+        </p>
+        <div style="display: flex; flex-direction: column; gap: 12px; align-items: center;">
+          <button class="btn btn-primary" onclick="openLoginModal()"
+            style="width: 100%; max-width: 280px; padding: 12px; font-weight: bold;">
+            🔑 Activate License / Log In
+          </button>
+        </div>
       </div>
     </div>
   </div>

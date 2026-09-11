@@ -68,15 +68,16 @@ input, select, textarea {
 
 /* Custom modern scrollbars */
 ::-webkit-scrollbar {
-  width: 6px;
-  height: 6px;
+  width: 10px;
+  height: 10px;
 }
 ::-webkit-scrollbar-track {
-  background: var(--bg-primary);
+  background: var(--bg-secondary);
 }
 ::-webkit-scrollbar-thumb {
-  background: var(--border-color-hover);
+  background: var(--text-muted);
   border-radius: var(--radius-full);
+  border: 2px solid var(--bg-secondary);
 }
 ::-webkit-scrollbar-thumb:hover {
   background: var(--accent-primary);
@@ -95,6 +96,7 @@ input, select, textarea {
 /* Sidebar Styling */
 .sidebar {
   width: 72px; /* collapsed by default */
+  flex-shrink: 0; /* prevent sidebar compression when main content has wide tables */
   background-color: var(--bg-secondary);
   border-right: 1px solid var(--border-color);
   display: flex;
@@ -648,8 +650,9 @@ select.form-control {
 .items-table .form-control-cell {
   background-color: transparent;
   border: 1px solid transparent;
-  padding: 6px 6px;
-  font-size: 13px;
+  padding: 6px 3px;
+  font-size: 12px;
+  letter-spacing: -0.2px;
   border-radius: var(--radius-sm);
   color: var(--text-primary);
   width: 100%;
@@ -858,8 +861,10 @@ select.form-control {
   background-color: var(--bg-card);
   border: 1px solid var(--border-color);
   border-radius: var(--radius-lg);
-  overflow: hidden;
+  overflow-y: auto;
+  max-height: calc(100vh - 310px);
   box-shadow: var(--shadow-sm);
+  position: relative;
 }
 
 .history-table {
@@ -877,6 +882,9 @@ select.form-control {
   text-transform: uppercase;
   color: var(--text-secondary);
   border-bottom: 1px solid var(--border-color);
+  position: sticky;
+  top: 0;
+  z-index: 1;
 }
 
 .history-table td {
@@ -970,6 +978,11 @@ select.form-control {
   padding: 24px;
   overflow-y: auto;
   flex: 1;
+}
+
+#receipt-modal .modal-body {
+  background-color: #222;
+  overflow-x: auto;
 }
 
 .modal-footer {
@@ -1109,7 +1122,7 @@ select.form-control {
    ========================================== */
 @media print {
   /* Force clean black and white printing palette by overriding design system HSL tokens */
-  :root {
+  :root, [data-theme] {
     --bg-primary: #ffffff !important;
     --bg-secondary: #ffffff !important;
     --bg-card: #ffffff !important;
@@ -1120,7 +1133,6 @@ select.form-control {
   }
 
   @page {
-    size: landscape;
     margin: 0; /* Let Electron print options control page margin boundaries */
   }
 
@@ -1702,6 +1714,84 @@ select.form-control {
   --shadow-glow: 0 0 15px 1px hsla(250, 84%, 54%, 0.08);
 }
 
+/* 8. Ice Breeze (Cool Blue Light Mode) */
+[data-theme="ice-breeze"] {
+  --bg-primary: hsl(200, 30%, 96%);
+  --bg-secondary: hsl(200, 25%, 92%);
+  --bg-card: hsl(0, 0%, 100%);
+  --bg-input: hsl(200, 20%, 90%);
+  --bg-input-focus: hsl(0, 0%, 100%);
+  
+  --accent-primary: hsl(200, 95%, 45%);
+  --accent-secondary: hsl(190, 90%, 40%);
+  --accent-gradient: linear-gradient(135deg, var(--accent-primary) 0%, var(--accent-secondary) 100%);
+  
+  --text-primary: hsl(200, 50%, 12%);
+  --text-secondary: hsl(200, 25%, 38%);
+  --text-muted: hsl(200, 15%, 55%);
+  
+  --border-color: hsla(200, 20%, 82%, 0.6);
+  --border-color-hover: hsla(200, 20%, 68%, 0.8);
+  --border-color-glow: hsla(200, 95%, 45%, 0.15);
+  
+  --shadow-sm: 0 2px 8px -2px rgba(0, 0, 0, 0.08);
+  --shadow-md: 0 6px 16px -4px rgba(0, 0, 0, 0.1);
+  --shadow-lg: 0 12px 32px -8px rgba(0, 0, 0, 0.12);
+  --shadow-glow: 0 0 15px 1px hsla(200, 95%, 45%, 0.08);
+}
+
+/* 9. Mint Cream (Fresh Green Light Mode) */
+[data-theme="mint-cream"] {
+  --bg-primary: hsl(140, 30%, 97%);
+  --bg-secondary: hsl(140, 25%, 93%);
+  --bg-card: hsl(0, 0%, 100%);
+  --bg-input: hsl(140, 20%, 91%);
+  --bg-input-focus: hsl(0, 0%, 100%);
+  
+  --accent-primary: hsl(145, 80%, 40%);
+  --accent-secondary: hsl(160, 80%, 35%);
+  --accent-gradient: linear-gradient(135deg, var(--accent-primary) 0%, var(--accent-secondary) 100%);
+  
+  --text-primary: hsl(145, 50%, 12%);
+  --text-secondary: hsl(145, 25%, 38%);
+  --text-muted: hsl(145, 15%, 55%);
+  
+  --border-color: hsla(145, 20%, 82%, 0.6);
+  --border-color-hover: hsla(145, 20%, 68%, 0.8);
+  --border-color-glow: hsla(145, 80%, 40%, 0.15);
+  
+  --shadow-sm: 0 2px 8px -2px rgba(0, 0, 0, 0.08);
+  --shadow-md: 0 6px 16px -4px rgba(0, 0, 0, 0.1);
+  --shadow-lg: 0 12px 32px -8px rgba(0, 0, 0, 0.12);
+  --shadow-glow: 0 0 15px 1px hsla(145, 80%, 40%, 0.08);
+}
+
+/* 10. Sand Dune (Warm Golden Light Mode) */
+[data-theme="sand-dune"] {
+  --bg-primary: hsl(35, 30%, 97%);
+  --bg-secondary: hsl(35, 25%, 93%);
+  --bg-card: hsl(0, 0%, 100%);
+  --bg-input: hsl(35, 20%, 91%);
+  --bg-input-focus: hsl(0, 0%, 100%);
+  
+  --accent-primary: hsl(35, 85%, 45%);
+  --accent-secondary: hsl(20, 85%, 45%);
+  --accent-gradient: linear-gradient(135deg, var(--accent-primary) 0%, var(--accent-secondary) 100%);
+  
+  --text-primary: hsl(35, 50%, 12%);
+  --text-secondary: hsl(35, 25%, 38%);
+  --text-muted: hsl(35, 15%, 55%);
+  
+  --border-color: hsla(35, 20%, 82%, 0.6);
+  --border-color-hover: hsla(35, 20%, 68%, 0.8);
+  --border-color-glow: hsla(35, 85%, 45%, 0.15);
+  
+  --shadow-sm: 0 2px 8px -2px rgba(0, 0, 0, 0.08);
+  --shadow-md: 0 6px 16px -4px rgba(0, 0, 0, 0.1);
+  --shadow-lg: 0 12px 32px -8px rgba(0, 0, 0, 0.12);
+  --shadow-glow: 0 0 15px 1px hsla(35, 85%, 45%, 0.08);
+}
+
 /* ==========================================
    SLEEK TOAST NOTIFICATION CONTAINER
    ========================================== */
@@ -1790,4 +1880,66 @@ select.form-control {
 
 .sidebar:not(:hover) #reports-submenu {
   display: none !important;
+}
+
+/* Compliance test badges */
+.badge {
+  display: inline-block;
+  padding: 4px 10px;
+  font-size: 11px;
+  font-weight: 700;
+  border-radius: var(--radius-sm);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  text-align: center;
+}
+.badge-secondary {
+  background-color: var(--bg-secondary);
+  color: var(--text-muted);
+  border: 1px solid var(--border-color);
+}
+.badge-running {
+  background-color: rgba(96, 165, 250, 0.1);
+  color: #60a5fa;
+  border: 1px solid rgba(96, 165, 250, 0.3);
+  animation: pulse-glow-badge 1.5s infinite;
+}
+.badge-success {
+  background-color: var(--success-glow);
+  color: var(--success);
+  border: 1px solid rgba(16, 185, 129, 0.3);
+}
+.badge-danger {
+  background-color: rgba(239, 68, 68, 0.08);
+  color: #ef4444;
+  border: 1px solid rgba(239, 68, 68, 0.2);
+}
+
+@keyframes pulse-glow-badge {
+  0% { opacity: 0.6; }
+  50% { opacity: 1; }
+  100% { opacity: 0.6; }
+}
+
+/* ==========================================
+   LICENSE SUBSCRIPTION SYSTEM
+   ========================================== */
+#license-lock-overlay {
+  animation: fadeIn 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.license-active-text {
+  color: var(--success) !important;
+  text-shadow: 0 0 10px var(--success-glow);
+}
+
+.license-expired-text {
+  color: var(--danger) !important;
+  text-shadow: 0 0 10px rgba(239, 68, 68, 0.2);
+}
+
+@keyframes license-pulse {
+  0% { transform: scale(1); }
+  50% { transform: scale(1.05); text-shadow: 0 0 15px rgba(239, 68, 68, 0.4); }
+  100% { transform: scale(1); }
 }

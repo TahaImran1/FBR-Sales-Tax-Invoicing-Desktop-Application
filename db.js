@@ -111,23 +111,19 @@ function deleteRecord(storeName, id) {
 // ==========================================
 
 // Company Configuration
-function dbGetCompany() {
+// Company Configuration
+function dbGetAllCompanies() {
+  return getAllRecords('company');
+}
+
+function dbGetCompany(id = 1) {
   return getDB().then(db => {
     return new Promise((resolve) => {
       const tx = db.transaction('company', 'readonly');
       const store = tx.objectStore('company');
-      const request = store.get(1);
+      const request = store.get(Number(id));
       request.onsuccess = () => {
-        resolve(request.result || {
-          id: 1,
-          sellerNTN: '',
-          sellerName: '',
-          sellerProvince: 'Sindh',
-          sellerAddress: '',
-          fbrEnvMode: 'sandbox',
-          fbrToken: '',
-          sendTotalVal: false
-        });
+        resolve(request.result || null);
       };
       request.onerror = () => resolve(null);
     });
@@ -135,9 +131,28 @@ function dbGetCompany() {
 }
 
 function dbSaveCompany(company) {
-  company.id = 1;
-  return putRecord('company', company);
+  if (!company.id) {
+    return dbGetAllCompanies().then(companies => {
+      const maxId = companies.reduce((max, c) => Math.max(max, c.id || 0), 0);
+      company.id = maxId + 1;
+      return putRecord('company', company).then(() => company);
+    });
+  }
+  return putRecord('company', company).then(() => company);
 }
+
+function dbSeedDefaultTaxesForCompany(companyId) {
+  const defaultTaxes = [
+    { taxType: 'Standard 18%', rate: 18, taxNature: 'Exclusive Taxes', type: 'Sales Tax', whTax: false },
+    { taxType: 'Further Tax 4%', rate: 4, taxNature: 'Exclusive Taxes', type: 'Further Tax', whTax: false }
+  ];
+  const promises = defaultTaxes.map(t => {
+    t.companyId = companyId;
+    return dbAddTax(t);
+  });
+  return Promise.all(promises);
+}
+
 
 // Taxes
 function dbGetTaxes() {
@@ -186,6 +201,32 @@ function dbSaveInvoice(invoiceMaster, itemsList, taxesList) {
       const invoicesStore = tx.objectStore('invoices');
       const detailsStore = tx.objectStore('invoice_details');
       const taxesStore = tx.objectStore('invoice_taxes');
+
+      const isUpdate = !!invoiceMaster.id;
+
+      if (isUpdate) {
+        const invoiceId = Number(invoiceMaster.id);
+        
+        // Delete existing details
+        const detailsIdx = detailsStore.index('invoiceId');
+        detailsIdx.openCursor(invoiceId).onsuccess = (e) => {
+          const cursor = e.target.result;
+          if (cursor) {
+            detailsStore.delete(cursor.primaryKey);
+            cursor.continue();
+          }
+        };
+
+        // Delete existing taxes
+        const taxesIdx = taxesStore.index('invoiceId');
+        taxesIdx.openCursor(invoiceId).onsuccess = (e) => {
+          const cursor = e.target.result;
+          if (cursor) {
+            taxesStore.delete(cursor.primaryKey);
+            cursor.continue();
+          }
+        };
+      }
 
       const reqMaster = invoicesStore.put(invoiceMaster);
 
@@ -356,23 +397,11 @@ function dbSeedDemoData() {
       promises.push(dbSaveCompany(rawCompany));
     }
 
-    // Seed Taxes
-    const defaultTaxes = [
-      { taxType: 'Standard 18%', rate: 18, taxNature: 'Exclusive Taxes', type: 'Sales Tax', whTax: false },
-      { taxType: 'Reduced Rate 1%', rate: 1, taxNature: 'Exclusive Taxes', type: 'Sales Tax', whTax: false },
-      { taxType: 'Exempt 0%', rate: 0, taxNature: 'Exclusive Taxes', type: 'Sales Tax', whTax: false },
-      { taxType: 'Further Tax 4%', rate: 4, taxNature: 'Exclusive Taxes', type: 'Further Tax', whTax: false },
-      { taxType: 'Telecom 19.5%', rate: 19.5, taxNature: 'Exclusive Taxes', type: 'Sales Tax', whTax: false },
-      { taxType: 'Services 16%', rate: 16, taxNature: 'Exclusive Taxes', type: 'Sales Tax', whTax: false },
-      { taxType: 'Electricity 7.5%', rate: 7.5, taxNature: 'Exclusive Taxes', type: 'Sales Tax', whTax: false },
-      { taxType: 'FED Goods 17%', rate: 17, taxNature: 'Exclusive Taxes', type: 'Sales Tax', whTax: false },
-      { taxType: 'SRO 297 Goods 25%', rate: 25, taxNature: 'Exclusive Taxes', type: 'Sales Tax', whTax: false },
-      { taxType: 'Cement Rs.2/kg', rate: 2, taxNature: 'Exclusive Taxes', type: 'Sales Tax', whTax: false },
-      { taxType: 'Potassium 18% + Rs.60/kg', rate: 18, taxNature: 'Exclusive Taxes', type: 'Sales Tax', whTax: false },
-      { taxType: 'CNG Rs.200/kg', rate: 200, taxNature: 'Exclusive Taxes', type: 'Sales Tax', whTax: false }
-    ];
+    // Seed Taxes (Empty by default)
+    const defaultTaxes = [];
     defaultTaxes.forEach(t => {
-      const hasTax = taxes.some(x => x.taxType === t.taxType);
+      t.companyId = 1;
+      const hasTax = taxes.some(x => x.taxType === t.taxType && (x.companyId === 1 || !x.companyId));
       if (!hasTax) promises.push(dbAddTax(t));
     });
 
@@ -394,5 +423,77 @@ function dbSeedDemoData() {
   });
 }
 
-    // Store the initialization promise globally so other scripts can await it
-    window.dbInitializationPromise = getDB().then(() => dbSeedDemoData());
+
+// Backup and Restore DB functions
+function dbExportBackup() {
+  const stores = ['company', 'taxes', 'items', 'customers', 'invoices', 'invoice_details', 'invoice_taxes'];
+  const backup = {
+    version: 1,
+    exportedAt: new Date().toISOString(),
+    data: {}
+  };
+
+  const promises = stores.map(storeName => {
+    return getAllRecords(storeName).then(records => {
+      backup.data[storeName] = records;
+    });
+  });
+
+  return Promise.all(promises).then(() => backup);
+}
+
+function dbImportBackup(backup) {
+  if (!backup || backup.version !== 1 || !backup.data) {
+    return Promise.reject("Invalid backup file format.");
+  }
+
+  return getDB().then(db => {
+    const stores = ['company', 'taxes', 'items', 'customers', 'invoices', 'invoice_details', 'invoice_taxes'];
+    
+    // Create transaction covering all stores
+    const tx = db.transaction(stores, 'readwrite');
+    
+    // Clear and restore each store
+    const promises = stores.map(storeName => {
+      return new Promise((resolve, reject) => {
+        const store = tx.objectStore(storeName);
+        const clearReq = store.clear();
+        
+        clearReq.onsuccess = () => {
+          const records = backup.data[storeName] || [];
+          let index = 0;
+          
+          function putNext() {
+            if (index >= records.length) {
+              resolve();
+              return;
+            }
+            
+            const putReq = store.put(records[index]);
+            putReq.onsuccess = () => {
+              index++;
+              putNext();
+            };
+            putReq.onerror = () => {
+              reject(putReq.error);
+            };
+          }
+          
+          putNext();
+        };
+        
+        clearReq.onerror = () => {
+          reject(clearReq.error);
+        };
+      });
+    });
+
+    return Promise.all(promises);
+  });
+}
+
+
+
+// Store the initialization promise globally so other scripts can await it
+window.dbInitializationPromise = getDB().then(() => dbSeedDemoData());
+
