@@ -80,6 +80,40 @@ function getAllRecords(storeName) {
   });
 }
 
+// ==========================================
+// CONTINUOUS AUTO-BACKUP & DATA RECOVERY
+// ==========================================
+let autoBackupTimer = null;
+function triggerAutoBackup(immediate = false) {
+  if (typeof window === 'undefined' || !window.api || !window.api.saveAutoBackup) return;
+
+  const executeBackup = async () => {
+    try {
+      const backup = await dbExportBackup();
+      if (backup && backup.data) {
+        await window.api.saveAutoBackup(backup);
+        window.dispatchEvent(new CustomEvent('db-auto-backed-up', { detail: backup.exportedAt }));
+      }
+    } catch (err) {
+      console.warn('[AutoBackup] Mirroring to disk failed:', err);
+    }
+  };
+
+  if (immediate) {
+    if (autoBackupTimer) clearTimeout(autoBackupTimer);
+    return executeBackup();
+  }
+
+  if (autoBackupTimer) clearTimeout(autoBackupTimer);
+  autoBackupTimer = setTimeout(executeBackup, 1000);
+}
+
+if (typeof window !== 'undefined') {
+  window.addEventListener('beforeunload', () => {
+    triggerAutoBackup(true);
+  });
+}
+
 // Helper: Generic write single record
 function putRecord(storeName, record) {
   return getDB().then(db => {
@@ -87,7 +121,10 @@ function putRecord(storeName, record) {
       const tx = db.transaction(storeName, 'readwrite');
       const store = tx.objectStore(storeName);
       const request = store.put(record);
-      request.onsuccess = () => resolve(request.result);
+      request.onsuccess = () => {
+        triggerAutoBackup();
+        resolve(request.result);
+      };
       request.onerror = () => reject(request.error);
     });
   });
@@ -100,7 +137,10 @@ function deleteRecord(storeName, id) {
       const tx = db.transaction(storeName, 'readwrite');
       const store = tx.objectStore(storeName);
       const request = store.delete(Number(id));
-      request.onsuccess = () => resolve();
+      request.onsuccess = () => {
+        triggerAutoBackup();
+        resolve();
+      };
       request.onerror = () => reject(request.error);
     });
   });
@@ -247,6 +287,7 @@ function dbSaveInvoice(invoiceMaster, itemsList, taxesList) {
       };
 
       tx.oncomplete = () => {
+        triggerAutoBackup();
         resolve(reqMaster.result);
       };
 
@@ -327,7 +368,10 @@ function dbDeleteInvoice(invoiceId) {
         }
       };
 
-      tx.oncomplete = () => resolve();
+      tx.oncomplete = () => {
+        triggerAutoBackup();
+        resolve();
+      };
       tx.onerror = () => reject(tx.error);
     });
   });
@@ -488,12 +532,60 @@ function dbImportBackup(backup) {
       });
     });
 
-    return Promise.all(promises);
+    return Promise.all(promises).then(() => {
+      triggerAutoBackup(true);
+      return true;
+    });
   });
 }
 
+// ==========================================
+// AUTO-RECOVERY ON STARTUP
+// ==========================================
+// Checks if IndexedDB is empty (e.g. after a reinstall or cache wipe) and automatically restores from disk backup
+async function dbCheckAndRestoreAutoBackup() {
+  if (typeof window === 'undefined' || !window.api || !window.api.getAutoBackup) return false;
 
+  try {
+    const [companies, invoices, customers, items] = await Promise.all([
+      dbGetAllCompanies(),
+      dbGetInvoices(),
+      dbGetCustomers(),
+      dbGetItems()
+    ]);
+
+    const hasInvoices = invoices && invoices.length > 0;
+    const hasCustomers = customers && customers.length > 0;
+    const hasItems = items && items.length > 0;
+    const hasCompany = companies && companies.some(c => c && (c.sellerName || c.sellerNTN || c.fbrToken));
+
+    const isDbEmpty = !hasInvoices && !hasCustomers && !hasItems && !hasCompany;
+
+    if (isDbEmpty) {
+      console.log('[AutoBackup] Empty IndexedDB detected on startup. Checking for persistent disk backup...');
+      const autoBackup = await window.api.getAutoBackup();
+      if (autoBackup && autoBackup.data) {
+        const hasRecords = Object.values(autoBackup.data).some(arr => Array.isArray(arr) && arr.length > 0);
+        if (hasRecords) {
+          console.log('[AutoBackup] Found valid disk backup from previous installation. Restoring...');
+          await dbImportBackup(autoBackup);
+          console.log('[AutoBackup] User database successfully restored from disk snapshot!');
+          return true;
+        }
+      }
+    }
+  } catch (err) {
+    console.warn('[AutoBackup] Startup check/restore failed:', err);
+  }
+  return false;
+}
 
 // Store the initialization promise globally so other scripts can await it
-window.dbInitializationPromise = getDB().then(() => dbSeedDemoData());
+window.dbInitializationPromise = getDB()
+  .then(() => dbCheckAndRestoreAutoBackup())
+  .then(() => dbSeedDemoData())
+  .then(() => {
+    // Initial snapshot sync to disk
+    triggerAutoBackup();
+  });
 

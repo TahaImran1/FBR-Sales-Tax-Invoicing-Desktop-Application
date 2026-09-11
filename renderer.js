@@ -6939,10 +6939,35 @@ async function importDatabaseBackup(event) {
   reader.readAsText(file);
 }
 
+// Database Auto-Backup Status Indicator
+window.addEventListener('db-auto-backed-up', (e) => {
+  const syncLabel = document.getElementById('auto-backup-last-sync');
+  if (syncLabel) {
+    const timeStr = new Date(e.detail || Date.now()).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+    syncLabel.textContent = `Synced: ${timeStr}`;
+  }
+});
+
+async function initAutoBackupStatus() {
+  if (window.api && window.api.getAutoBackupInfo) {
+    try {
+      const info = await window.api.getAutoBackupInfo();
+      const syncLabel = document.getElementById('auto-backup-last-sync');
+      if (syncLabel && info && info.exists && info.lastModified) {
+        const timeStr = new Date(info.lastModified).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+        syncLabel.textContent = `Synced: ${timeStr}`;
+      }
+    } catch (err) {
+      console.warn("Could not retrieve auto-backup info:", err);
+    }
+  }
+}
+
 // ==========================================
 // AUTO-UPDATER UI INTEGRATION
 // ==========================================
 async function initUpdaterUI() {
+  initAutoBackupStatus();
   if (!window.api || !window.api.onUpdaterMessage) return;
 
   try {
@@ -6957,6 +6982,10 @@ async function initUpdaterUI() {
 
   window.api.onUpdaterMessage((data) => {
     const statusText = document.getElementById('app-update-status-text');
+    const availableBanner = document.getElementById('update-available-banner');
+    const availableText = document.getElementById('update-available-text');
+    const globalBanner = document.getElementById('global-update-banner');
+    const globalTitle = document.getElementById('global-update-title');
     const progressContainer = document.getElementById('update-download-progress-container');
     const progressLabel = document.getElementById('update-download-progress-label');
     const progressBar = document.getElementById('update-download-progress-bar');
@@ -6971,17 +7000,23 @@ async function initUpdaterUI() {
         break;
 
       case 'available':
-        if (statusText) statusText.value = `Update v${data.version} available. Downloading...`;
-        if (progressContainer) progressContainer.style.display = 'flex';
-        alert(`A new update (v${data.version}) is available. It is being downloaded in the background.`);
+        if (statusText) statusText.value = `Update v${data.version} available.`;
+        if (availableBanner) availableBanner.style.display = 'flex';
+        if (availableText) availableText.textContent = `Version v${data.version} is now available!`;
+        if (globalBanner) globalBanner.style.display = 'flex';
+        if (globalTitle) globalTitle.textContent = `A new update (v${data.version}) is available.`;
         break;
 
       case 'not-available':
         if (statusText) statusText.value = "Application is up to date.";
+        if (availableBanner) availableBanner.style.display = 'none';
+        if (globalBanner) globalBanner.style.display = 'none';
         if (progressContainer) progressContainer.style.display = 'none';
         break;
 
       case 'downloading':
+        if (availableBanner) availableBanner.style.display = 'none';
+        if (globalBanner) globalBanner.style.display = 'none';
         if (statusText) statusText.value = `Downloading update: ${data.percent}%`;
         if (progressContainer) progressContainer.style.display = 'flex';
         if (progressLabel) progressLabel.textContent = `Downloading Update: ${data.percent}%`;
@@ -6991,11 +7026,13 @@ async function initUpdaterUI() {
       case 'downloaded':
         if (statusText) statusText.value = `Update v${data.version} ready to install.`;
         if (progressContainer) progressContainer.style.display = 'none';
+        if (availableBanner) availableBanner.style.display = 'none';
+        if (globalBanner) globalBanner.style.display = 'none';
         if (restartBanner) {
           restartBanner.style.display = 'flex';
-          if (restartText) restartText.textContent = `Update v${data.version} is ready to apply!`;
+          if (restartText) restartText.textContent = `Update v${data.version} downloaded and ready to install!`;
         }
-        alert(`Update v${data.version} downloaded! Click "Restart to Apply" in Settings or the update will install automatically on quit.`);
+        alert(`Update v${data.version} downloaded! You can restart now or apply it whenever you wish.`);
         break;
 
       case 'error':
@@ -7006,6 +7043,59 @@ async function initUpdaterUI() {
     }
   });
 }
+
+window.startDownloadUpdate = async function () {
+  const btn = document.getElementById('btn-start-download');
+  const globalBtn = document.getElementById('btn-global-download-update');
+  const statusText = document.getElementById('app-update-status-text');
+  const progressContainer = document.getElementById('update-download-progress-container');
+  const availableBanner = document.getElementById('update-available-banner');
+  const globalBanner = document.getElementById('global-update-banner');
+
+  if (btn) {
+    btn.disabled = true;
+    btn.textContent = "Starting...";
+  }
+  if (globalBtn) {
+    globalBtn.disabled = true;
+    globalBtn.textContent = "Starting...";
+  }
+  if (statusText) {
+    statusText.value = "Starting download...";
+  }
+  if (progressContainer) {
+    progressContainer.style.display = 'flex';
+  }
+  if (availableBanner) availableBanner.style.display = 'none';
+  if (globalBanner) globalBanner.style.display = 'none';
+
+  if (window.api && window.api.downloadUpdate) {
+    try {
+      const res = await window.api.downloadUpdate();
+      if (res && !res.success && res.error) {
+        alert(`Download failed: ${res.error}`);
+        if (btn) {
+          btn.disabled = false;
+          btn.textContent = "Download Update";
+        }
+        if (globalBtn) {
+          globalBtn.disabled = false;
+          globalBtn.textContent = "Download Now";
+        }
+      }
+    } catch (err) {
+      console.error("Download update failed:", err);
+      alert(`Download failed: ${err.message}`);
+    }
+  }
+};
+
+window.dismissUpdateBanner = function () {
+  const availableBanner = document.getElementById('update-available-banner');
+  const globalBanner = document.getElementById('global-update-banner');
+  if (availableBanner) availableBanner.style.display = 'none';
+  if (globalBanner) globalBanner.style.display = 'none';
+};
 
 window.checkForAppUpdates = async function () {
   const btn = document.getElementById('btn-check-updates');

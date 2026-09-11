@@ -26,6 +26,12 @@ contextBridge.exposeInMainWorld('api', {
   // Auto-updater methods
   onUpdaterMessage: (callback) => ipcRenderer.on('updater-message', (event, data) => callback(data)),
   checkForUpdates: () => ipcRenderer.invoke('check-for-updates'),
+  downloadUpdate: () => ipcRenderer.invoke('download-update'),
   installUpdate: () => ipcRenderer.invoke('install-update'),
-  getAppVersion: () => ipcRenderer.invoke('get-app-version')
+  getAppVersion: () => ipcRenderer.invoke('get-app-version'),
+
+  // Automated Continuous Database Protection & Recovery methods
+  saveAutoBackup: (backupData) => ipcRenderer.invoke('save-auto-backup', backupData),
+  getAutoBackup: () => ipcRenderer.invoke('get-auto-backup'),
+  getAutoBackupInfo: () => ipcRenderer.invoke('get-auto-backup-info')
 });

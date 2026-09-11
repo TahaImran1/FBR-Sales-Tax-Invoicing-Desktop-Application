@@ -3,11 +3,14 @@ const { autoUpdater } = require('electron-updater');
 const path = require('node:path');
 const fs = require('node:fs');
 
+// Ensure permanent, locked application name and AppData directory across all builds, updates & reinstalls
+app.setName('fbr-invoicing-app');
+
 let mainWindow;
 
-// Auto Updater Configuration
-autoUpdater.autoDownload = true;
-autoUpdater.autoInstallOnAppQuit = true;
+// Auto Updater Configuration (Voluntary User-Driven Updates)
+autoUpdater.autoDownload = false;
+autoUpdater.autoInstallOnAppQuit = false;
 
 let updaterInitialized = false;
 function setupAutoUpdater() {
@@ -70,10 +73,10 @@ function setupAutoUpdater() {
     }
   });
 
-  // Check for updates 5 seconds after startup if packaged
+  // Check for updates 5 seconds after startup if packaged (voluntary notification only, no auto download)
   if (app.isPackaged) {
     setTimeout(() => {
-      autoUpdater.checkForUpdatesAndNotify().catch((err) => {
+      autoUpdater.checkForUpdates().catch((err) => {
         console.error('Initial check for updates failed:', err);
       });
     }, 5000);
@@ -870,6 +873,16 @@ ipcMain.handle('check-for-updates', async () => {
   }
 });
 
+// IPC handler to explicitly start downloading update on user request
+ipcMain.handle('download-update', async () => {
+  try {
+    const result = await autoUpdater.downloadUpdate();
+    return { success: true, result };
+  } catch (err) {
+    return { success: false, error: err.message };
+  }
+});
+
 // IPC handler to install update immediately
 ipcMain.handle('install-update', () => {
   autoUpdater.quitAndInstall(false, true);
@@ -891,6 +904,86 @@ ipcMain.handle('restore-backup-file', async (event, filepath) => {
     console.error('Failed to read backup file:', err);
   }
   return null;
+});
+
+// Helper: Ensure persistent backups directory in userData
+function getDatabaseBackupDir() {
+  const dir = path.join(app.getPath('userData'), 'backups');
+  if (!fs.existsSync(dir)) {
+    fs.mkdirSync(dir, { recursive: true });
+  }
+  return dir;
+}
+
+// IPC handler to continuously mirror and save automated database snapshot to disk
+ipcMain.handle('save-auto-backup', async (event, backupData) => {
+  try {
+    if (!backupData || !backupData.data) {
+      return { success: false, error: 'Invalid backup payload' };
+    }
+    const backupDir = getDatabaseBackupDir();
+    const primaryFile = path.join(backupDir, 'auto_database_backup.json');
+    const fallbackFile = path.join(backupDir, 'auto_database_backup_prev.json');
+
+    // Rotate previous backup if primary exists to ensure double redundancy
+    if (fs.existsSync(primaryFile)) {
+      try {
+        fs.copyFileSync(primaryFile, fallbackFile);
+      } catch (copyErr) {
+        console.warn('Could not rotate previous backup file:', copyErr);
+      }
+    }
+
+    fs.writeFileSync(primaryFile, JSON.stringify(backupData, null, 2), 'utf8');
+    return { success: true, timestamp: backupData.exportedAt || new Date().toISOString() };
+  } catch (err) {
+    console.error('Failed to save auto backup to disk:', err);
+    return { success: false, error: err.message };
+  }
+});
+
+// IPC handler to retrieve the latest automated database snapshot from disk
+ipcMain.handle('get-auto-backup', async () => {
+  try {
+    const backupDir = getDatabaseBackupDir();
+    const primaryFile = path.join(backupDir, 'auto_database_backup.json');
+    const fallbackFile = path.join(backupDir, 'auto_database_backup_prev.json');
+
+    let fileToRead = null;
+    if (fs.existsSync(primaryFile)) {
+      fileToRead = primaryFile;
+    } else if (fs.existsSync(fallbackFile)) {
+      fileToRead = fallbackFile;
+    }
+
+    if (fileToRead) {
+      const raw = fs.readFileSync(fileToRead, 'utf8');
+      return JSON.parse(raw);
+    }
+  } catch (err) {
+    console.error('Failed to read auto backup from disk:', err);
+  }
+  return null;
+});
+
+// IPC handler to get backup status info for UI verification
+ipcMain.handle('get-auto-backup-info', async () => {
+  try {
+    const backupDir = getDatabaseBackupDir();
+    const primaryFile = path.join(backupDir, 'auto_database_backup.json');
+    if (fs.existsSync(primaryFile)) {
+      const stats = fs.statSync(primaryFile);
+      return {
+        exists: true,
+        path: primaryFile,
+        size: stats.size,
+        lastModified: stats.mtime.toISOString()
+      };
+    }
+  } catch (err) {
+    console.error('Failed to get backup info:', err);
+  }
+  return { exists: false };
 });
 
 function getFormat2TemplateContent() {
