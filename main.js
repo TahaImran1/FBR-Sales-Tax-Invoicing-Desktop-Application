@@ -1,4 +1,4 @@
-const { app, BrowserWindow, ipcMain, dialog } = require('electron');
+const { app, BrowserWindow, ipcMain, dialog, Menu, MenuItem } = require('electron');
 const { autoUpdater } = require('electron-updater');
 const path = require('node:path');
 const fs = require('node:fs');
@@ -104,6 +104,28 @@ function createWindow() {
 
   // Hide the default browser-style menu bar for a modern, sleek SaaS desktop application look
   mainWindow.setMenuBarVisibility(false);
+
+  // Enable right-click context menu (Copy, Cut, Paste, Select All)
+  mainWindow.webContents.on('context-menu', (event, params) => {
+    const contextMenu = new Menu();
+
+    if (params.editFlags.canCopy && params.selectionText) {
+      contextMenu.append(new MenuItem({ role: 'copy', label: 'Copy' }));
+    }
+    if (params.isEditable) {
+      if (params.editFlags.canCut) contextMenu.append(new MenuItem({ role: 'cut', label: 'Cut' }));
+      if (params.editFlags.canPaste) contextMenu.append(new MenuItem({ role: 'paste', label: 'Paste' }));
+      contextMenu.append(new MenuItem({ type: 'separator' }));
+      if (params.editFlags.canSelectAll) contextMenu.append(new MenuItem({ role: 'selectAll', label: 'Select All' }));
+    } else if (params.selectionText) {
+      contextMenu.append(new MenuItem({ type: 'separator' }));
+      contextMenu.append(new MenuItem({ role: 'selectAll', label: 'Select All' }));
+    }
+
+    if (contextMenu.items.length > 0) {
+      contextMenu.popup();
+    }
+  });
 
   mainWindow.once('ready-to-show', () => {
     mainWindow.show();

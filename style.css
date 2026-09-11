@@ -57,13 +57,20 @@ body {
   color: var(--text-primary);
   height: 100vh;
   overflow: hidden;
-  user-select: none;
+  user-select: text;
+  -webkit-user-select: text;
   -webkit-font-smoothing: antialiased;
 }
 
-input, select, textarea {
-  user-select: text !important;
-  -webkit-user-select: text !important;
+input, select, textarea, td, th, p, span, div, h1, h2, h3, h4, h5, h6, label, pre, code {
+  user-select: text;
+  -webkit-user-select: text;
+}
+
+/* Prevent accidental text selection highlighting on purely interactive chrome controls */
+.sidebar, button, .btn, .nav-item, .env-badge, .stat-card-icon {
+  user-select: none;
+  -webkit-user-select: none;
 }
 
 /* Custom modern scrollbars */
