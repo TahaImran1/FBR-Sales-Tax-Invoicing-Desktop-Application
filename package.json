@@ -1,6 +1,6 @@
 {
   "name": "fbr-invoicing-app",
-  "version": "1.0.7",
+  "version": "1.0.8",
   "description": "FBR Compliant Digital Invoicing Desktop Suite (Compliance 2026)",
   "main": "main.js",
   "scripts": {
