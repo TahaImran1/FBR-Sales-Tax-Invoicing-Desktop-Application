@@ -1,12 +1,13 @@
 {
   "name": "fbr-invoicing-app",
-  "version": "1.0.9",
+  "version": "1.0.10",
   "description": "FBR Compliant Digital Invoicing Desktop Suite (Compliance 2026)",
   "main": "main.js",
   "scripts": {
     "start": "electron .",
     "build": "electron-builder --win",
-    "release": "electron-builder --win --publish always"
+    "release": "electron-builder --win --publish always",
+    "postinstall": "node -e \"try { require('child_process').execSync('npx prebuild-install -r napi', { cwd: './node_modules/sqlite3', stdio: 'inherit' }); } catch(e){}\""
   },
   "keywords": [
     "fbr",
@@ -22,6 +23,11 @@
   },
   "build": {
     "appId": "com.antigravity.fbr-invoicing-app",
+    "npmRebuild": false,
+    "asar": true,
+    "asarUnpack": [
+      "**/node_modules/sqlite3/**/*"
+    ],
     "publish": [
       {
         "provider": "github",
@@ -46,6 +52,7 @@
       "renderer.js",
       "db.js",
       "style.css",
+      "sqlite-db.js",
       "qrcode.min.js",
       "fbrdigitalinvoicesystemlogo.png",
       "app_logo.png"
@@ -55,6 +62,7 @@
     }
   },
   "dependencies": {
-    "electron-updater": "^6.8.9"
+    "electron-updater": "^6.8.9",
+    "sqlite3": "^6.0.1"
   }
 }

@@ -33,5 +33,29 @@ contextBridge.exposeInMainWorld('api', {
   // Automated Continuous Database Protection & Recovery methods
   saveAutoBackup: (backupData) => ipcRenderer.invoke('save-auto-backup', backupData),
   getAutoBackup: () => ipcRenderer.invoke('get-auto-backup'),
-  getAutoBackupInfo: () => ipcRenderer.invoke('get-auto-backup-info')
+  getAutoBackupInfo: () => ipcRenderer.invoke('get-auto-backup-info'),
+
+  // Native SQLite High-Throughput Relational Database Engine
+  sqlite: {
+    getAllCompanies: () => ipcRenderer.invoke('sqlite-get-all-companies'),
+    getCompany: (id) => ipcRenderer.invoke('sqlite-get-company', id),
+    saveCompany: (company) => ipcRenderer.invoke('sqlite-save-company', company),
+    seedDefaultTaxesForCompany: (companyId) => ipcRenderer.invoke('sqlite-seed-default-taxes', companyId),
+    getTaxes: () => ipcRenderer.invoke('sqlite-get-taxes'),
+    addTax: (tax) => ipcRenderer.invoke('sqlite-add-tax', tax),
+    deleteTax: (id) => ipcRenderer.invoke('sqlite-delete-tax', id),
+    getItems: () => ipcRenderer.invoke('sqlite-get-items'),
+    addItem: (item) => ipcRenderer.invoke('sqlite-add-item', item),
+    deleteItem: (id) => ipcRenderer.invoke('sqlite-delete-item', id),
+    getCustomers: () => ipcRenderer.invoke('sqlite-get-customers'),
+    addCustomer: (cust) => ipcRenderer.invoke('sqlite-add-customer', cust),
+    deleteCustomer: (id) => ipcRenderer.invoke('sqlite-delete-customer', id),
+    saveInvoice: (master, items, taxes) => ipcRenderer.invoke('sqlite-save-invoice', master, items, taxes),
+    getInvoices: () => ipcRenderer.invoke('sqlite-get-invoices'),
+    getInvoiceFull: (id) => ipcRenderer.invoke('sqlite-get-invoice-full', id),
+    deleteInvoice: (id) => ipcRenderer.invoke('sqlite-delete-invoice', id),
+    exportBackup: () => ipcRenderer.invoke('sqlite-export-backup'),
+    importBackup: (backup) => ipcRenderer.invoke('sqlite-import-backup', backup),
+    migrateFromLegacy: (legacyBackup) => ipcRenderer.invoke('sqlite-migrate-from-legacy', legacyBackup)
+  }
 });

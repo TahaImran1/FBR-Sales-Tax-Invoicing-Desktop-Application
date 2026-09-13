@@ -1,88 +1,17 @@
-// ==========================================
-// DATABASE UTILITY - INDEXEDDB LAYER
-// ==========================================
+// ==========================================================
+// DATABASE UTILITY - SQLITE NATIVE CLIENT ADAPTER
+// 100% Backward Compatible Interface with renderer.js
+// Backed by high-throughput embedded SQLite in Electron main process
+// ==========================================================
 
-const DB_NAME = 'FBRInvoicingDB';
-const DB_VERSION = 1;
-
-let dbInstance = null;
-
-function getDB() {
-  return new Promise((resolve, reject) => {
-    if (dbInstance) {
-      return resolve(dbInstance);
-    }
-
-    const request = indexedDB.open(DB_NAME, DB_VERSION);
-
-    request.onupgradeneeded = (event) => {
-      const db = event.target.result;
-
-      // Store 1: Company Profile (single record)
-      if (!db.objectStoreNames.contains('company')) {
-        db.createObjectStore('company', { keyPath: 'id' });
-      }
-
-      // Store 2: Tax Configurations
-      if (!db.objectStoreNames.contains('taxes')) {
-        db.createObjectStore('taxes', { keyPath: 'id', autoIncrement: true });
-      }
-
-      // Store 3: Products (Items)
-      if (!db.objectStoreNames.contains('items')) {
-        db.createObjectStore('items', { keyPath: 'id', autoIncrement: true });
-      }
-
-      // Store 4: Customers
-      if (!db.objectStoreNames.contains('customers')) {
-        db.createObjectStore('customers', { keyPath: 'id', autoIncrement: true });
-      }
-
-      // Store 5: Invoices (Master)
-      if (!db.objectStoreNames.contains('invoices')) {
-        db.createObjectStore('invoices', { keyPath: 'id', autoIncrement: true });
-      }
-
-      // Store 6: Invoice Details (Line Items)
-      if (!db.objectStoreNames.contains('invoice_details')) {
-        const store = db.createObjectStore('invoice_details', { keyPath: 'id', autoIncrement: true });
-        store.createIndex('invoiceId', 'invoiceId', { unique: false });
-      }
-
-      // Store 7: Invoice Taxes (Detailed Breakdown)
-      if (!db.objectStoreNames.contains('invoice_taxes')) {
-        const store = db.createObjectStore('invoice_taxes', { keyPath: 'id', autoIncrement: true });
-        store.createIndex('invoiceId', 'invoiceId', { unique: false });
-      }
-    };
-
-    request.onsuccess = (event) => {
-      dbInstance = event.target.result;
-      resolve(dbInstance);
-    };
-
-    request.onerror = (event) => {
-      reject('IndexedDB initialization error: ' + event.target.error);
-    };
-  });
+function getSqliteApi() {
+  if (typeof window !== 'undefined' && window.api && window.api.sqlite) {
+    return window.api.sqlite;
+  }
+  throw new Error('SQLite bridge is not available in window.api');
 }
 
-// Helper: Generic read all records
-function getAllRecords(storeName) {
-  return getDB().then(db => {
-    return new Promise((resolve, reject) => {
-      const tx = db.transaction(storeName, 'readonly');
-      const store = tx.objectStore(storeName);
-      const request = store.getAll();
-      request.onsuccess = () => resolve(request.result);
-      request.onerror = () => reject(request.error);
-    });
-  });
-}
-
-// ==========================================
-// CONTINUOUS AUTO-BACKUP & DATA RECOVERY
-// ==========================================
+// Helper: Generic debounced snapshot to disk for extra UI redundancy
 let autoBackupTimer = null;
 function triggerAutoBackup(immediate = false) {
   if (typeof window === 'undefined' || !window.api || !window.api.saveAutoBackup) return;
@@ -95,7 +24,7 @@ function triggerAutoBackup(immediate = false) {
         window.dispatchEvent(new CustomEvent('db-auto-backed-up', { detail: backup.exportedAt }));
       }
     } catch (err) {
-      console.warn('[AutoBackup] Mirroring to disk failed:', err);
+      console.warn('[SQLite AutoBackup] Mirroring note:', err);
     }
   };
 
@@ -105,7 +34,7 @@ function triggerAutoBackup(immediate = false) {
   }
 
   if (autoBackupTimer) clearTimeout(autoBackupTimer);
-  autoBackupTimer = setTimeout(executeBackup, 1000);
+  autoBackupTimer = setTimeout(executeBackup, 1500);
 }
 
 if (typeof window !== 'undefined') {
@@ -114,478 +43,239 @@ if (typeof window !== 'undefined') {
   });
 }
 
-// Helper: Generic write single record
-function putRecord(storeName, record) {
-  return getDB().then(db => {
-    return new Promise((resolve, reject) => {
-      const tx = db.transaction(storeName, 'readwrite');
-      const store = tx.objectStore(storeName);
-      const request = store.put(record);
-      request.onsuccess = () => {
-        triggerAutoBackup();
-        resolve(request.result);
-      };
-      request.onerror = () => reject(request.error);
-    });
-  });
-}
-
-// Helper: Generic delete record
-function deleteRecord(storeName, id) {
-  return getDB().then(db => {
-    return new Promise((resolve, reject) => {
-      const tx = db.transaction(storeName, 'readwrite');
-      const store = tx.objectStore(storeName);
-      const request = store.delete(Number(id));
-      request.onsuccess = () => {
-        triggerAutoBackup();
-        resolve();
-      };
-      request.onerror = () => reject(request.error);
-    });
-  });
-}
-
-// ==========================================
+// ==========================================================
 // EXPOSED PERSISTENCE FUNCTIONS
-// ==========================================
+// ==========================================================
 
-// Company Configuration
-// Company Configuration
+// --- Companies ---
 function dbGetAllCompanies() {
-  return getAllRecords('company');
+  return getSqliteApi().getAllCompanies();
 }
 
 function dbGetCompany(id = 1) {
-  return getDB().then(db => {
-    return new Promise((resolve) => {
-      const tx = db.transaction('company', 'readonly');
-      const store = tx.objectStore('company');
-      const request = store.get(Number(id));
-      request.onsuccess = () => {
-        resolve(request.result || null);
-      };
-      request.onerror = () => resolve(null);
-    });
-  });
+  return getSqliteApi().getCompany(id);
 }
 
 function dbSaveCompany(company) {
-  if (!company.id) {
-    return dbGetAllCompanies().then(companies => {
-      const maxId = companies.reduce((max, c) => Math.max(max, c.id || 0), 0);
-      company.id = maxId + 1;
-      return putRecord('company', company).then(() => company);
-    });
-  }
-  return putRecord('company', company).then(() => company);
+  return getSqliteApi().saveCompany(company).then(res => {
+    triggerAutoBackup();
+    return res;
+  });
 }
 
 function dbSeedDefaultTaxesForCompany(companyId) {
-  const defaultTaxes = [
-    { taxType: 'Standard 18%', rate: 18, taxNature: 'Exclusive Taxes', type: 'Sales Tax', whTax: false },
-    { taxType: 'Further Tax 4%', rate: 4, taxNature: 'Exclusive Taxes', type: 'Further Tax', whTax: false }
-  ];
-  const promises = defaultTaxes.map(t => {
-    t.companyId = companyId;
-    return dbAddTax(t);
-  });
-  return Promise.all(promises);
+  return getSqliteApi().seedDefaultTaxesForCompany(companyId);
 }
 
-
-// Taxes
+// --- Taxes ---
 function dbGetTaxes() {
-  return getAllRecords('taxes');
+  return getSqliteApi().getTaxes();
 }
 
 function dbAddTax(tax) {
-  return putRecord('taxes', tax);
+  return getSqliteApi().addTax(tax).then(res => {
+    triggerAutoBackup();
+    return res;
+  });
 }
 
 function dbDeleteTax(id) {
-  return deleteRecord('taxes', id);
+  return getSqliteApi().deleteTax(id).then(res => {
+    triggerAutoBackup();
+    return res;
+  });
 }
 
-// Items
+// --- Products / Items ---
 function dbGetItems() {
-  return getAllRecords('items');
+  return getSqliteApi().getItems();
 }
 
 function dbAddItem(item) {
-  return putRecord('items', item);
+  return getSqliteApi().addItem(item).then(res => {
+    triggerAutoBackup();
+    return res;
+  });
 }
 
 function dbDeleteItem(id) {
-  return deleteRecord('items', id);
+  return getSqliteApi().deleteItem(id).then(res => {
+    triggerAutoBackup();
+    return res;
+  });
 }
 
-// Customers
+// --- Customers ---
 function dbGetCustomers() {
-  return getAllRecords('customers');
+  return getSqliteApi().getCustomers();
 }
 
 function dbAddCustomer(cust) {
-  return putRecord('customers', cust);
+  return getSqliteApi().addCustomer(cust).then(res => {
+    triggerAutoBackup();
+    return res;
+  });
 }
 
 function dbDeleteCustomer(id) {
-  return deleteRecord('customers', id);
+  return getSqliteApi().deleteCustomer(id).then(res => {
+    triggerAutoBackup();
+    return res;
+  });
 }
 
-// Invoices (Full transaction write: master, lines, and taxes breakdown)
+// --- Invoices ---
 function dbSaveInvoice(invoiceMaster, itemsList, taxesList) {
-  return getDB().then(db => {
-    return new Promise((resolve, reject) => {
-      const tx = db.transaction(['invoices', 'invoice_details', 'invoice_taxes'], 'readwrite');
-      const invoicesStore = tx.objectStore('invoices');
-      const detailsStore = tx.objectStore('invoice_details');
-      const taxesStore = tx.objectStore('invoice_taxes');
-
-      const isUpdate = !!invoiceMaster.id;
-
-      if (isUpdate) {
-        const invoiceId = Number(invoiceMaster.id);
-        
-        // Delete existing details
-        const detailsIdx = detailsStore.index('invoiceId');
-        detailsIdx.openCursor(invoiceId).onsuccess = (e) => {
-          const cursor = e.target.result;
-          if (cursor) {
-            detailsStore.delete(cursor.primaryKey);
-            cursor.continue();
-          }
-        };
-
-        // Delete existing taxes
-        const taxesIdx = taxesStore.index('invoiceId');
-        taxesIdx.openCursor(invoiceId).onsuccess = (e) => {
-          const cursor = e.target.result;
-          if (cursor) {
-            taxesStore.delete(cursor.primaryKey);
-            cursor.continue();
-          }
-        };
-      }
-
-      const reqMaster = invoicesStore.put(invoiceMaster);
-
-      reqMaster.onsuccess = () => {
-        const generatedId = reqMaster.result;
-
-        // 1. Write invoice lines
-        itemsList.forEach(item => {
-          item.invoiceId = generatedId;
-          detailsStore.put(item);
-        });
-
-        // 2. Write invoice taxes breakdown
-        taxesList.forEach(tax => {
-          tax.invoiceId = generatedId;
-          taxesStore.put(tax);
-        });
-      };
-
-      tx.oncomplete = () => {
-        triggerAutoBackup();
-        resolve(reqMaster.result);
-      };
-
-      tx.onerror = (e) => {
-        reject(e.target.error);
-      };
-    });
+  return getSqliteApi().saveInvoice(invoiceMaster, itemsList, taxesList).then(res => {
+    triggerAutoBackup();
+    return res;
   });
 }
 
 function dbGetInvoices() {
-  return getAllRecords('invoices');
+  return getSqliteApi().getInvoices();
 }
 
 function dbGetInvoiceFull(invoiceId) {
-  return getDB().then(db => {
-    return new Promise((resolve, reject) => {
-      const tx = db.transaction(['invoices', 'invoice_details', 'invoice_taxes'], 'readonly');
-      const invStore = tx.objectStore('invoices');
-      const detStore = tx.objectStore('invoice_details');
-      const taxStore = tx.objectStore('invoice_taxes');
-
-      const reqInv = invStore.get(Number(invoiceId));
-
-      reqInv.onsuccess = () => {
-        const inv = reqInv.result;
-        if (!inv) {
-          return resolve(null);
-        }
-
-        const detailsIdx = detStore.index('invoiceId');
-        const reqDet = detailsIdx.getAll(Number(invoiceId));
-
-        reqDet.onsuccess = () => {
-          inv.items = reqDet.result;
-
-          const taxesIdx = taxStore.index('invoiceId');
-          const reqTax = taxesIdx.getAll(Number(invoiceId));
-
-          reqTax.onsuccess = () => {
-            inv.taxesBreakdown = reqTax.result;
-            resolve(inv);
-          };
-          reqTax.onerror = () => reject(reqTax.error);
-        };
-        reqDet.onerror = () => reject(reqDet.error);
-      };
-      reqInv.onerror = () => reject(reqInv.error);
-    });
-  });
+  return getSqliteApi().getInvoiceFull(invoiceId);
 }
 
-// Delete Invoice and cascade clear details & taxes
 function dbDeleteInvoice(invoiceId) {
-  return getDB().then(db => {
-    return new Promise((resolve, reject) => {
-      const tx = db.transaction(['invoices', 'invoice_details', 'invoice_taxes'], 'readwrite');
-
-      tx.objectStore('invoices').delete(Number(invoiceId));
-
-      const detStore = tx.objectStore('invoice_details');
-      const detIdx = detStore.index('invoiceId');
-      detIdx.openCursor(Number(invoiceId)).onsuccess = (e) => {
-        const cursor = e.target.result;
-        if (cursor) {
-          detStore.delete(cursor.primaryKey);
-          cursor.continue();
-        }
-      };
-
-      const taxStore = tx.objectStore('invoice_taxes');
-      const taxIdx = taxStore.index('invoiceId');
-      taxIdx.openCursor(Number(invoiceId)).onsuccess = (e) => {
-        const cursor = e.target.result;
-        if (cursor) {
-          taxStore.delete(cursor.primaryKey);
-          cursor.continue();
-        }
-      };
-
-      tx.oncomplete = () => {
-        triggerAutoBackup();
-        resolve();
-      };
-      tx.onerror = () => reject(tx.error);
-    });
+  return getSqliteApi().deleteInvoice(invoiceId).then(res => {
+    triggerAutoBackup();
+    return res;
   });
 }
 
-// ==========================================
-// DEMO SEED DATA INJECTOR
-// ==========================================
-function dbSeedDemoData() {
-  return getDB().then(async (db) => {
-    // 1. Get raw company profile from DB
-    const rawCompany = await new Promise(resolve => {
-      const tx = db.transaction('company', 'readonly');
-      const store = tx.objectStore('company');
-      const req = store.get(1);
-      req.onsuccess = () => resolve(req.result);
-      req.onerror = () => resolve(null);
-    });
-
-    const CURRENT_DB_SEED_VERSION = 5; // Incremented for scenario seed expansion
-
-    // If demo data was already seeded, skip seeding completely to respect deletions and custom items
-    if (rawCompany && rawCompany.isDemoSeeded && rawCompany.dbVersionSeeded === CURRENT_DB_SEED_VERSION) {
-      return Promise.resolve();
-    }
-
-    const [taxes, items, customers] = await Promise.all([dbGetTaxes(), dbGetItems(), dbGetCustomers()]);
-    const promises = [];
-
-    // Run migration on existing customers if version is < 4
-    if (rawCompany && rawCompany.isDemoSeeded && rawCompany.dbVersionSeeded < 4) {
-      customers.forEach(c => {
-        let changed = false;
-        if (c.partyType === 'Customer') {
-          c.partyType = 'LOCAL';
-          changed = true;
-        }
-        if (c.province && c.province !== c.province.toUpperCase()) {
-          c.province = c.province.toUpperCase();
-          changed = true;
-        }
-        if (changed) {
-          promises.push(dbAddCustomer(c));
-        }
-      });
-    }
-
-    if (!rawCompany) {
-      const sandboxCompany = {
-        id: 1,
-        sellerNTN: '',
-        sellerName: '',
-        sellerProvince: 'Sindh',
-        sellerAddress: '',
-        fbrEnvMode: 'sandbox',
-        fbrToken: '',
-        sendTotalVal: false,
-        theme: 'midnight-abyss',
-        isDemoSeeded: true,
-        dbVersionSeeded: CURRENT_DB_SEED_VERSION
-      };
-      promises.push(dbSaveCompany(sandboxCompany));
-    } else {
-      // Mark as seeded to prevent checking missing items in future launches
-      rawCompany.isDemoSeeded = true;
-      rawCompany.dbVersionSeeded = CURRENT_DB_SEED_VERSION;
-      promises.push(dbSaveCompany(rawCompany));
-    }
-
-    // Seed Taxes (Empty by default)
-    const defaultTaxes = [];
-    defaultTaxes.forEach(t => {
-      t.companyId = 1;
-      const hasTax = taxes.some(x => x.taxType === t.taxType && (x.companyId === 1 || !x.companyId));
-      if (!hasTax) promises.push(dbAddTax(t));
-    });
-
-    // Seed Products / Items
-    const sandboxItems = [];
-    sandboxItems.forEach(i => {
-      const hasItem = items.some(x => x.hsCode === i.hsCode && x.saleType === i.saleType);
-      if (!hasItem) promises.push(dbAddItem(i));
-    });
-
-    // Seed Customers
-    const sandboxCustomers = [];
-    sandboxCustomers.forEach(c => {
-      const hasCust = customers.some(x => x.ntn === c.ntn);
-      if (!hasCust) promises.push(dbAddCustomer(c));
-    });
-
-    return Promise.all(promises);
-  });
-}
-
-
-// Backup and Restore DB functions
+// --- Backup & Restore ---
 function dbExportBackup() {
-  const stores = ['company', 'taxes', 'items', 'customers', 'invoices', 'invoice_details', 'invoice_taxes'];
-  const backup = {
-    version: 1,
-    exportedAt: new Date().toISOString(),
-    data: {}
-  };
-
-  const promises = stores.map(storeName => {
-    return getAllRecords(storeName).then(records => {
-      backup.data[storeName] = records;
-    });
-  });
-
-  return Promise.all(promises).then(() => backup);
+  return getSqliteApi().exportBackup();
 }
 
 function dbImportBackup(backup) {
-  if (!backup || backup.version !== 1 || !backup.data) {
-    return Promise.reject("Invalid backup file format.");
-  }
-
-  return getDB().then(db => {
-    const stores = ['company', 'taxes', 'items', 'customers', 'invoices', 'invoice_details', 'invoice_taxes'];
-    
-    // Create transaction covering all stores
-    const tx = db.transaction(stores, 'readwrite');
-    
-    // Clear and restore each store
-    const promises = stores.map(storeName => {
-      return new Promise((resolve, reject) => {
-        const store = tx.objectStore(storeName);
-        const clearReq = store.clear();
-        
-        clearReq.onsuccess = () => {
-          const records = backup.data[storeName] || [];
-          let index = 0;
-          
-          function putNext() {
-            if (index >= records.length) {
-              resolve();
-              return;
-            }
-            
-            const putReq = store.put(records[index]);
-            putReq.onsuccess = () => {
-              index++;
-              putNext();
-            };
-            putReq.onerror = () => {
-              reject(putReq.error);
-            };
-          }
-          
-          putNext();
-        };
-        
-        clearReq.onerror = () => {
-          reject(clearReq.error);
-        };
-      });
-    });
-
-    return Promise.all(promises).then(() => {
-      triggerAutoBackup(true);
-      return true;
-    });
+  return getSqliteApi().importBackup(backup).then(res => {
+    triggerAutoBackup(true);
+    return res;
   });
 }
 
-// ==========================================
-// AUTO-RECOVERY ON STARTUP
-// ==========================================
-// Checks if IndexedDB is empty (e.g. after a reinstall or cache wipe) and automatically restores from disk backup
-async function dbCheckAndRestoreAutoBackup() {
-  if (typeof window === 'undefined' || !window.api || !window.api.getAutoBackup) return false;
+// ==========================================================
+// LEGACY INDEXEDDB EXTRACTION (FAILSAFE RETRIEVAL ONLY)
+// ==========================================================
+// If SQLite is freshly initialized and no disk backup was present,
+// this checks if the browser IndexedDB stores contain data to migrate.
+async function extractLegacyIndexedDBData() {
+  if (typeof indexedDB === 'undefined') return null;
 
-  try {
-    const [companies, invoices, customers, items] = await Promise.all([
-      dbGetAllCompanies(),
-      dbGetInvoices(),
-      dbGetCustomers(),
-      dbGetItems()
-    ]);
+  return new Promise((resolve) => {
+    const request = indexedDB.open('FBRInvoicingDB', 1);
 
-    const hasInvoices = invoices && invoices.length > 0;
-    const hasCustomers = customers && customers.length > 0;
-    const hasItems = items && items.length > 0;
-    const hasCompany = companies && companies.some(c => c && (c.sellerName || c.sellerNTN || c.fbrToken));
+    request.onerror = () => resolve(null);
+    request.onupgradeneeded = () => resolve(null);
 
-    const isDbEmpty = !hasInvoices && !hasCustomers && !hasItems && !hasCompany;
-
-    if (isDbEmpty) {
-      console.log('[AutoBackup] Empty IndexedDB detected on startup. Checking for persistent disk backup...');
-      const autoBackup = await window.api.getAutoBackup();
-      if (autoBackup && autoBackup.data) {
-        const hasRecords = Object.values(autoBackup.data).some(arr => Array.isArray(arr) && arr.length > 0);
-        if (hasRecords) {
-          console.log('[AutoBackup] Found valid disk backup from previous installation. Restoring...');
-          await dbImportBackup(autoBackup);
-          console.log('[AutoBackup] User database successfully restored from disk snapshot!');
-          return true;
-        }
+    request.onsuccess = async (event) => {
+      const idb = event.target.result;
+      const stores = ['company', 'taxes', 'items', 'customers', 'invoices', 'invoice_details', 'invoice_taxes'];
+      const missing = stores.some(s => !idb.objectStoreNames.contains(s));
+      if (missing) {
+        idb.close();
+        return resolve(null);
       }
-    }
-  } catch (err) {
-    console.warn('[AutoBackup] Startup check/restore failed:', err);
-  }
-  return false;
+
+      try {
+        const tx = idb.transaction(stores, 'readonly');
+        const data = {};
+
+        for (const storeName of stores) {
+          const store = tx.objectStore(storeName);
+          data[storeName] = await new Promise((res) => {
+            const req = store.getAll();
+            req.onsuccess = () => res(req.result || []);
+            req.onerror = () => res([]);
+          });
+        }
+
+        idb.close();
+
+        const totalRecords = Object.values(data).reduce((acc, arr) => acc + arr.length, 0);
+        if (totalRecords > 0) {
+          console.log(`[Legacy IDB Extraction] Found ${totalRecords} records in Chromium IndexedDB.`);
+          resolve({
+            version: 1,
+            exportedAt: new Date().toISOString(),
+            data
+          });
+        } else {
+          resolve(null);
+        }
+      } catch (err) {
+        console.warn('[Legacy IDB Extraction] Error:', err);
+        idb.close();
+        resolve(null);
+      }
+    };
+  });
 }
 
-// Store the initialization promise globally so other scripts can await it
-window.dbInitializationPromise = getDB()
-  .then(() => dbCheckAndRestoreAutoBackup())
-  .then(() => dbSeedDemoData())
-  .then(() => {
-    // Initial snapshot sync to disk
-    triggerAutoBackup();
-  });
+// Seed sandbox company if SQLite database is completely fresh
+async function dbSeedDemoData() {
+  const companies = await dbGetAllCompanies();
+  const CURRENT_DB_SEED_VERSION = 5;
 
+  if (companies && companies.length > 0) {
+    const primary = companies[0];
+    if (primary && primary.isDemoSeeded && primary.dbVersionSeeded === CURRENT_DB_SEED_VERSION) {
+      return;
+    }
+  }
+
+  if (!companies || companies.length === 0) {
+    console.log('[SQLite Engine] Seeding default sandbox company profile...');
+    const sandboxCompany = {
+      id: 1,
+      sellerNTN: '',
+      sellerName: '',
+      sellerProvince: 'Sindh',
+      sellerAddress: '',
+      fbrEnvMode: 'sandbox',
+      fbrToken: '',
+      sendTotalVal: false,
+      theme: 'midnight-abyss',
+      isDemoSeeded: true,
+      dbVersionSeeded: CURRENT_DB_SEED_VERSION
+    };
+    await dbSaveCompany(sandboxCompany);
+  }
+}
+
+// Auto-recovery / startup verification
+async function dbCheckAndRestoreAutoBackup() {
+  const companies = await dbGetAllCompanies();
+  if (!companies || companies.length === 0) {
+    // Check if browser IndexedDB has records to migrate
+    const legacyIDB = await extractLegacyIndexedDBData();
+    if (legacyIDB) {
+      console.log('[SQLite Migration] Migrating from Chromium IndexedDB to SQLite...');
+      await getSqliteApi().migrateFromLegacy(legacyIDB);
+    }
+  }
+  return true;
+}
+
+// Global initialization promise awaited by renderer.js
+window.dbInitializationPromise = (async () => {
+  try {
+    // 1. Check and migrate any legacy browser data if SQLite is empty
+    await dbCheckAndRestoreAutoBackup();
+
+    // 2. Ensure initial seed if brand new install
+    await dbSeedDemoData();
+
+    // 3. Trigger initial snapshot sync
+    triggerAutoBackup();
+
+    console.log('[SQLite Bridge] Initialized and connected successfully.');
+  } catch (err) {
+    console.error('[SQLite Bridge Initialization Error]:', err);
+  }
+})();

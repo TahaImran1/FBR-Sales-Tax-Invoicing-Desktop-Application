@@ -2,6 +2,7 @@ const { app, BrowserWindow, ipcMain, dialog, Menu, MenuItem } = require('electro
 const { autoUpdater } = require('electron-updater');
 const path = require('node:path');
 const fs = require('node:fs');
+const sqliteDb = require('./sqlite-db.js');
 
 // Ensure permanent, locked application name and AppData directory across all builds, updates & reinstalls
 app.setName('fbr-invoicing-app');
@@ -1008,6 +1009,33 @@ ipcMain.handle('get-auto-backup-info', async () => {
   return { exists: false };
 });
 
+// ==========================================
+// SQLITE DATABASE NATIVE IPC HANDLERS
+// ==========================================
+ipcMain.handle('sqlite-get-all-companies', async () => sqliteDb.dbGetAllCompanies());
+ipcMain.handle('sqlite-get-company', async (event, id) => sqliteDb.dbGetCompany(id));
+ipcMain.handle('sqlite-save-company', async (event, company) => sqliteDb.dbSaveCompany(company));
+ipcMain.handle('sqlite-seed-default-taxes', async (event, companyId) => sqliteDb.dbSeedDefaultTaxesForCompany(companyId));
+ipcMain.handle('sqlite-get-taxes', async () => sqliteDb.dbGetTaxes());
+ipcMain.handle('sqlite-add-tax', async (event, tax) => sqliteDb.dbAddTax(tax));
+ipcMain.handle('sqlite-delete-tax', async (event, id) => sqliteDb.dbDeleteTax(id));
+ipcMain.handle('sqlite-get-items', async () => sqliteDb.dbGetItems());
+ipcMain.handle('sqlite-add-item', async (event, item) => sqliteDb.dbAddItem(item));
+ipcMain.handle('sqlite-delete-item', async (event, id) => sqliteDb.dbDeleteItem(id));
+ipcMain.handle('sqlite-get-customers', async () => sqliteDb.dbGetCustomers());
+ipcMain.handle('sqlite-add-customer', async (event, cust) => sqliteDb.dbAddCustomer(cust));
+ipcMain.handle('sqlite-delete-customer', async (event, id) => sqliteDb.dbDeleteCustomer(id));
+ipcMain.handle('sqlite-save-invoice', async (event, master, items, taxes) => sqliteDb.dbSaveInvoice(master, items, taxes));
+ipcMain.handle('sqlite-get-invoices', async () => sqliteDb.dbGetInvoices());
+ipcMain.handle('sqlite-get-invoice-full', async (event, id) => sqliteDb.dbGetInvoiceFull(id));
+ipcMain.handle('sqlite-delete-invoice', async (event, id) => sqliteDb.dbDeleteInvoice(id));
+ipcMain.handle('sqlite-export-backup', async () => sqliteDb.dbExportBackup());
+ipcMain.handle('sqlite-import-backup', async (event, backup) => sqliteDb.dbImportBackup(backup));
+ipcMain.handle('sqlite-migrate-from-legacy', async (event, legacyBackup) => {
+  const backupDir = getDatabaseBackupDir();
+  return sqliteDb.executeZeroLossMigration(legacyBackup, backupDir);
+});
+
 function getFormat2TemplateContent() {
   return `<!-- Template: Format 2 Portrait -->
 <style>
@@ -1412,8 +1440,17 @@ function getFormat3TemplateContent() {
 </div>`;
 }
 
-// Initialize templates directory at startup
-app.whenReady().then(() => {
+// Initialize templates directory and SQLite database at startup
+app.whenReady().then(async () => {
+  // Initialize SQLite and perform automatic zero-loss migration if legacy data exists
+  try {
+    await sqliteDb.initSQLite();
+    const backupDir = getDatabaseBackupDir();
+    await sqliteDb.checkAndMigrateFromLegacy(backupDir);
+  } catch (dbErr) {
+    console.error('[Startup] SQLite initialization / migration error:', dbErr);
+  }
+
   const templatesDir = path.join(app.getPath('userData'), 'templates');
   if (!fs.existsSync(templatesDir)) {
     fs.mkdirSync(templatesDir, { recursive: true });
