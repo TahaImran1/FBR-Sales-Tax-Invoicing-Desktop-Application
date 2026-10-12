@@ -172,7 +172,8 @@ for i in range(1, 29):
         item["quantity"] = 1
         item["valueSalesExcludingST"] = 100
         item["fixedNotifiedValueOrRetailPrice"] = 0
-        item["salesTaxApplicable"] = 98
+        # FBR Rule: FED (1*80) + 18% of (Value + FED) = 80 + 32.40 = 112.40
+        item["salesTaxApplicable"] = 112.4
         item["furtherTax"] = 0
         item["extraTax"] = 0
         item["fedPayable"] = 0

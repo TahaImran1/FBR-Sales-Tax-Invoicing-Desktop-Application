@@ -173,6 +173,22 @@ async function fetchLicenseProfile(token, userId) {
 }
 
 async function checkLicenseStatus() {
+  // If localStorage is empty, automatically recover from persistent license storage
+  if (!localStorage.getItem('license_email') && window.api && window.api.getLicenseCache) {
+    try {
+      const diskCache = await window.api.getLicenseCache();
+      if (diskCache && diskCache.email && diskCache.token) {
+        console.log("Restoring license credentials from persistent storage for:", diskCache.email);
+        localStorage.setItem('license_token', diskCache.token);
+        localStorage.setItem('license_email', diskCache.email);
+        localStorage.setItem('license_cached_active', (diskCache.cachedActive === true || diskCache.cachedActive === 'true').toString());
+        localStorage.setItem('license_cached_expiry', diskCache.cachedExpiry || '');
+      }
+    } catch (cacheErr) {
+      console.warn("Could not retrieve persistent license cache:", cacheErr);
+    }
+  }
+
   console.log("checkLicenseStatus() checking local license state. Email:", localStorage.getItem('license_email'));
   const email = localStorage.getItem('license_email');
   const token = localStorage.getItem('license_token');
@@ -325,6 +341,20 @@ window.submitLicenseLogin = async function () {
     localStorage.setItem('license_cached_active', (profile.is_active === true).toString());
     localStorage.setItem('license_cached_expiry', profile.expiry_date || '');
 
+    // Also mirror to persistent disk storage to guarantee survival across restarts
+    if (window.api && window.api.saveLicenseCache) {
+      try {
+        await window.api.saveLicenseCache({
+          token,
+          email,
+          cachedActive: profile.is_active === true,
+          cachedExpiry: profile.expiry_date || ''
+        });
+      } catch (cacheSaveErr) {
+        console.warn("Could not save persistent license cache:", cacheSaveErr);
+      }
+    }
+
     // 5. Evaluate license status locally
     const checkPassed = await checkLicenseStatus();
 
@@ -363,6 +393,9 @@ window.logoutLicense = async function () {
     localStorage.removeItem('license_email');
     localStorage.removeItem('license_cached_active');
     localStorage.removeItem('license_cached_expiry');
+    if (window.api && window.api.saveLicenseCache) {
+      await window.api.saveLicenseCache(null);
+    }
     alert("License deactivated.");
     await checkLicenseStatus();
   }
@@ -472,7 +505,7 @@ function switchPanel(panelId) {
 
   // Handle sidebar highlight matching
   let activeNavId = panelId;
-  if (panelId === 'invoice' || panelId === 'drafts') {
+  if (panelId === 'invoice') {
     activeNavId = 'history';
   }
   const navBtn = document.getElementById(`nav-${activeNavId}`);
@@ -1002,7 +1035,7 @@ async function renderCustomers() {
   if (dbCustomersList.length === 0) {
     tbody.innerHTML = `
       <tr>
-        <td colspan="8" style="text-align: center; color: var(--text-muted); padding: 24px 0;">
+        <td colspan="9" style="text-align: center; color: var(--text-muted); padding: 24px 0;">
           No customers registered in local database. Click "+ Add Customer" to create one.
         </td>
       </tr>
@@ -1011,10 +1044,16 @@ async function renderCustomers() {
   }
 
   dbCustomersList.forEach(c => {
+    const custCodeDisplay = c.customerCode || c.customId || c.id;
     const taxCount = (c.linkedTaxes || []).length;
     const itemCount = (c.linkedItems || []).length;
     const tr = document.createElement('tr');
     tr.innerHTML = `
+      <td>
+        <span class="badge" style="font-family: monospace; font-size: 11px; font-weight: 600; background: var(--bg-secondary); color: var(--accent-primary); border: 1px solid var(--border-color); padding: 3px 8px; border-radius: 4px;">
+          ${custCodeDisplay}
+        </span>
+      </td>
       <td><strong>${c.partyName}</strong></td>
       <td>${c.ntn || '-'}</td>
       <td>${c.province}</td>
@@ -1050,7 +1089,7 @@ async function openCustomerModal(id = null) {
 
   // Clear inputs
   document.getElementById('cust-id').value = '';
-  document.getElementById('cust-id-display').value = 'Auto';
+  document.getElementById('cust-custom-id').value = '';
   document.getElementById('cust-name').value = '';
   document.getElementById('cust-ntn').value = '';
   document.getElementById('cust-strn').value = '';
@@ -1079,7 +1118,7 @@ async function openCustomerModal(id = null) {
     const c = dbCustomersList.find(x => x.id === id);
     if (c) {
       document.getElementById('cust-id').value = c.id;
-      document.getElementById('cust-id-display').value = c.id;
+      document.getElementById('cust-custom-id').value = c.customerCode || c.customId || c.id || '';
       document.getElementById('cust-name').value = c.partyName;
       document.getElementById('cust-ntn').value = c.ntn || '';
       document.getElementById('cust-strn').value = c.strn || '';
@@ -1126,7 +1165,54 @@ function closeCustomerModal() {
 
 async function saveCustomerForm() {
   const id = document.getElementById('cust-id').value;
+  let enteredCode = document.getElementById('cust-custom-id').value.trim();
+
+  // Validate or assign Customer Code (Unique & Not Null)
+  if (!id) {
+    // New customer creation: validate uniqueness if entered, otherwise auto-assign
+    if (enteredCode) {
+      const duplicate = dbCustomersList.find(x => 
+        String(x.customerCode || x.customId || x.id).trim().toLowerCase() === enteredCode.toLowerCase()
+      );
+      if (duplicate) {
+        alert(`Customer Code "${enteredCode}" is already assigned to "${duplicate.partyName}". Please enter a unique Customer Code.`);
+        document.getElementById('cust-custom-id').focus();
+        return;
+      }
+    } else {
+      // Default auto-assigned by system on creation
+      try {
+        enteredCode = await dbGetNextCustomerCode();
+      } catch (e) {
+        const taken = new Set(dbCustomersList.flatMap(x => [x.customerCode, x.customId]).filter(Boolean).map(s => String(s).trim().toLowerCase()));
+        let n = dbCustomersList.length + 1;
+        while (taken.has(`cust-${String(n).padStart(3, '0')}`.toLowerCase())) {
+          n++;
+        }
+        enteredCode = `CUST-${String(n).padStart(3, '0')}`;
+      }
+    }
+  } else {
+    // Updating existing customer: must be non-null and unique
+    if (!enteredCode) {
+      alert("Customer Code cannot be empty. Please enter a valid unique Customer Code.");
+      document.getElementById('cust-custom-id').focus();
+      return;
+    }
+    const duplicate = dbCustomersList.find(x => 
+      Number(x.id) !== Number(id) &&
+      String(x.customerCode || x.customId || x.id).trim().toLowerCase() === enteredCode.toLowerCase()
+    );
+    if (duplicate) {
+      alert(`Customer Code "${enteredCode}" is already assigned to "${duplicate.partyName}". Please enter a unique Customer Code.`);
+      document.getElementById('cust-custom-id').focus();
+      return;
+    }
+  }
+
   const cust = {
+    customerCode: enteredCode,
+    customId: enteredCode,
     partyName: document.getElementById('cust-name').value.trim(),
     ntn: document.getElementById('cust-ntn').value.trim(),
     strn: document.getElementById('cust-strn').value.trim(),
@@ -1180,6 +1266,8 @@ async function saveCustomerForm() {
 
   if (id) {
     cust.id = Number(id);
+    cust.customerCode = enteredCode;
+    cust.customId = enteredCode;
     const existing = dbCustomersList.find(x => x.id === cust.id);
     if (existing) {
       cust.companyId = existing.companyId || 1;
@@ -1267,7 +1355,8 @@ function addCustomerLinkedItemRow(itemData = null) {
   let itemOptionsHtml = '<option value="">-- Select Item --</option>';
   dbItemsList.forEach(i => {
     if (i.isActive !== false) {
-      itemOptionsHtml += `<option value="${i.id}">${i.itemDesc}</option>`;
+      const prodCodeDisplay = i.productCode || i.customId || i.customProductId || i.id;
+      itemOptionsHtml += `<option value="${i.id}">[Code: ${prodCodeDisplay}] ${i.itemDesc}</option>`;
     }
   });
 
@@ -1313,7 +1402,7 @@ async function renderItems() {
   if (dbItemsList.length === 0) {
     tbody.innerHTML = `
       <tr>
-        <td colspan="8" style="text-align: center; color: var(--text-muted); padding: 24px 0;">
+        <td colspan="10" style="text-align: center; color: var(--text-muted); padding: 24px 0;">
           No product items in database. Click "+ Add Item" to populate.
         </td>
       </tr>
@@ -1322,8 +1411,14 @@ async function renderItems() {
   }
 
   dbItemsList.forEach(i => {
+    const prodCodeDisplay = i.productCode || i.customId || i.customProductId || i.id;
     const tr = document.createElement('tr');
     tr.innerHTML = `
+      <td>
+        <span class="badge" style="font-family: monospace; font-size: 11px; font-weight: 600; background: var(--bg-secondary); color: var(--accent-primary); border: 1px solid var(--border-color); padding: 3px 8px; border-radius: 4px;">
+          ${prodCodeDisplay}
+        </span>
+      </td>
       <td><strong>${i.itemDesc}</strong></td>
       <td style="font-family: monospace;">${i.hsCode}</td>
       <td>${i.uom}</td>
@@ -1363,6 +1458,7 @@ function openItemModal(id = null) {
 
   // Clear inputs
   document.getElementById('item-id').value = '';
+  document.getElementById('item-custom-id').value = '';
   document.getElementById('item-desc').value = '';
   document.getElementById('item-hscode').value = '';
   document.getElementById('item-uom').value = 'Numbers, pieces, units';
@@ -1380,6 +1476,7 @@ function openItemModal(id = null) {
     const item = dbItemsList.find(x => x.id === id);
     if (item) {
       document.getElementById('item-id').value = item.id;
+      document.getElementById('item-custom-id').value = item.productCode || item.customId || item.customProductId || item.id || '';
       document.getElementById('item-desc').value = item.itemDesc;
       document.getElementById('item-hscode').value = item.hsCode;
       document.getElementById('item-uom').value = item.uom;
@@ -1406,13 +1503,63 @@ function closeItemModal() {
 
 async function saveItemForm() {
   const id = document.getElementById('item-id').value;
+  let enteredCode = document.getElementById('item-custom-id').value.trim();
+
+  // Validate or assign Product Code (Unique & Not Null)
+  if (!id) {
+    // New product creation: validate uniqueness if entered, otherwise auto-assign
+    if (enteredCode) {
+      const duplicate = dbItemsList.find(x => 
+        String(x.productCode || x.customId || x.customProductId || x.id).trim().toLowerCase() === enteredCode.toLowerCase()
+      );
+      if (duplicate) {
+        alert(`Product Code "${enteredCode}" is already assigned to "${duplicate.itemDesc}". Please enter a unique Product Code.`);
+        document.getElementById('item-custom-id').focus();
+        return;
+      }
+    } else {
+      // Default auto-assigned by system on creation
+      try {
+        enteredCode = await dbGetNextProductCode();
+      } catch (e) {
+        const taken = new Set(dbItemsList.flatMap(x => [x.productCode, x.customId, x.customProductId]).filter(Boolean).map(s => String(s).trim().toLowerCase()));
+        let n = dbItemsList.length + 1;
+        while (taken.has(`prod-${String(n).padStart(3, '0')}`.toLowerCase())) {
+          n++;
+        }
+        enteredCode = `PROD-${String(n).padStart(3, '0')}`;
+      }
+    }
+  } else {
+    // Updating existing product: must be non-null and unique
+    if (!enteredCode) {
+      alert("Product Code cannot be empty. Please enter a valid unique Product Code.");
+      document.getElementById('item-custom-id').focus();
+      return;
+    }
+    const duplicate = dbItemsList.find(x => 
+      Number(x.id) !== Number(id) &&
+      String(x.productCode || x.customId || x.customProductId || x.id).trim().toLowerCase() === enteredCode.toLowerCase()
+    );
+    if (duplicate) {
+      alert(`Product Code "${enteredCode}" is already assigned to "${duplicate.itemDesc}". Please enter a unique Product Code.`);
+      document.getElementById('item-custom-id').focus();
+      return;
+    }
+  }
+
   let hsVal = document.getElementById('item-hscode').value.trim().replace(/\s+/g, '');
   if (/^\d{8}$/.test(hsVal)) {
     hsVal = hsVal.substring(0, 4) + '.' + hsVal.substring(4);
     document.getElementById('item-hscode').value = hsVal;
   }
 
+  const enteredItemCode = document.getElementById('item-code').value.trim();
+
   const item = {
+    productCode: enteredCode,
+    customId: enteredCode,
+    customProductId: enteredCode,
     itemDesc: document.getElementById('item-desc').value.trim(),
     hsCode: hsVal,
     uom: document.getElementById('item-uom').value,
@@ -1421,7 +1568,7 @@ async function saveItemForm() {
     sroItemSerialNo: document.getElementById('item-sroserial').value.trim(),
     boxQty: parseInt(document.getElementById('item-box-qty').value) || 0,
     barcode: document.getElementById('item-barcode').value.trim(),
-    itemCode: document.getElementById('item-code').value.trim(),
+    itemCode: enteredItemCode || enteredCode,
     retailPrice: parseFloat(document.getElementById('item-retailprice').value) || 0,
     isActive: document.getElementById('item-active').checked,
     taxedAtRetail: false
@@ -1440,6 +1587,9 @@ async function saveItemForm() {
 
   if (id) {
     item.id = Number(id);
+    item.productCode = enteredCode;
+    item.customId = enteredCode;
+    item.customProductId = enteredCode;
     const existing = dbItemsList.find(x => x.id === item.id);
     if (existing) {
       item.companyId = existing.companyId || 1;
@@ -1599,7 +1749,8 @@ async function populateInvoicePartyDropdown() {
   dbCustomersList.forEach(c => {
     const opt = document.createElement('option');
     opt.value = c.id;
-    opt.textContent = `${c.partyName} (NTN: ${c.ntn || 'Unregistered'})`;
+    const custCodeDisplay = c.customerCode || c.customId || c.id;
+    opt.textContent = `[Code: ${custCodeDisplay}] ${c.partyName} (NTN: ${c.ntn || 'Unregistered'})`;
     select.appendChild(opt);
   });
 
@@ -1689,7 +1840,8 @@ async function addInvoiceItemRow(item = null) {
   let productsHtml = '<option value="">-- Select Product --</option>';
   dbItemsList.forEach(i => {
     if (i.isActive !== false) {
-      productsHtml += `<option value="${i.id}">${i.itemDesc}</option>`;
+      const prodCodeDisplay = i.productCode || i.customId || i.customProductId || i.id;
+      productsHtml += `<option value="${i.id}">[Code: ${prodCodeDisplay}] ${i.itemDesc}</option>`;
     }
   });
 
@@ -3285,7 +3437,7 @@ function resetInvoiceForm() {
 // FBR GATEWAY CLIENT API (IPC INTEGRATION)
 // ==========================================
 function buildFbrPayload() {
-  const invoiceType = document.getElementById('invoice-type').value;
+  const invoiceType = (document.getElementById('invoice-type')?.value || '').trim() || 'Sale Invoice';
   const invoiceDate = document.getElementById('invoice-date').value;
   const buyerId = document.getElementById('invoice-party-select').value;
   const refNo = document.getElementById('invoice-manual-no').value.trim() || '0';
@@ -3367,7 +3519,10 @@ function buildFbrPayload() {
 
     let stAmt = 0;
     const st = prod.saleType || '';
-    if (fixedTax > 0) {
+    if (st.includes('Goods (FED in ST Mode)')) {
+      const fedSpecific = qty * 80;
+      stAmt = fedSpecific + ((rowNetValue + fedSpecific) * (itemSalesTaxRate / 100));
+    } else if (fixedTax > 0) {
       stAmt = rowNetValue * (itemSalesTaxRate / 100) + qty * fixedTax;
     } else if (st.includes('Exempt') || st.includes('zero-rate')) {
       stAmt = 0.00;
@@ -3392,7 +3547,9 @@ function buildFbrPayload() {
     const finalExtraTax = itemExtraTaxVal > 0 ? itemExtraTaxVal : "";
 
     let rateText = itemSalesTaxRate + "%";
-    if (fixedTax > 0) {
+    if (st.includes('Goods (FED in ST Mode)')) {
+      rateText = `${itemSalesTaxRate || 18}% and Rs. 80 per Liter`;
+    } else if (fixedTax > 0) {
       const uomVal = (prod.uom || '').toUpperCase();
       const uomText = (uomVal === 'KG' || uomVal === 'KGS') ? 'kilogram' : (prod.uom || 'kilogram');
       rateText = `${itemSalesTaxRate}% along with rupees ${fixedTax} per ${uomText}`;
@@ -4088,7 +4245,7 @@ async function viewHistoryInvoice(id) {
 
 function renderDashboard() {
   // Update welcome header business profile
-  document.getElementById('dashboard-welcome').textContent = `Suite: ${fbrSettings.sellerName}`;
+  document.getElementById('dashboard-welcome').textContent = fbrSettings.sellerName || 'FBR Digital Invoicing';
 
   // Calculate statistics
   const count = invoiceHistory.length;
@@ -6255,7 +6412,8 @@ function generateSandboxScenarioPayload(sn, seller) {
     item.quantity = 1;
     item.valueSalesExcludingST = 100;
     item.fixedNotifiedValueOrRetailPrice = 0;
-    item.salesTaxApplicable = 98;
+    // FBR Rule: FED (1*80) + 18% of (Value + FED) = 80 + 18%(180) = 80 + 32.40 = 112.40
+    item.salesTaxApplicable = 112.4;
     item.furtherTax = 0;
     item.extraTax = 0;
     item.fedPayable = 0;
@@ -6572,7 +6730,7 @@ async function runSandboxTestSuite() {
   // Set progress to 100%
   document.getElementById('sandbox-test-progress-percent').textContent = "100%";
   document.getElementById('sandbox-test-progress-bar').style.width = "100%";
-  document.getElementById('sandbox-test-progress-text').textContent = `Compliance suite execution complete (${passedCount} passed, ${failedCount} failed of ${selectedScenarios.length} tested).`;
+  document.getElementById('sandbox-test-progress-text').textContent = `Compliance test execution complete (${passedCount} passed, ${failedCount} failed of ${selectedScenarios.length} tested).`;
 
   // Final summary status
   statusVal.textContent = failedCount === 0 ? "Compliant" : "Non-Compliant";
@@ -6581,7 +6739,7 @@ async function runSandboxTestSuite() {
 
   sandboxTestRunning = false;
   document.getElementById('btn-run-sandbox-tests').disabled = false;
-  document.getElementById('btn-run-sandbox-tests').textContent = "⚡ Run Test Suite";
+  document.getElementById('btn-run-sandbox-tests').textContent = "⚡ Run Tests";
 }
 
 function showSandboxPayload(sn) {
@@ -6715,7 +6873,7 @@ async function saveInvoiceDraft() {
     invoiceNumber: activeDraftId ? ('DRAFT-' + activeDraftId) : ('DRAFT-' + Date.now().toString().slice(-6)),
     invoiceRefNo: document.getElementById('invoice-manual-no').value.trim(),
     invoiceDate: document.getElementById('invoice-date').value || new Date().toISOString().split('T')[0],
-    invoiceType: document.getElementById('invoice-type').value,
+    invoiceType: (document.getElementById('invoice-type')?.value || '').trim() || 'Sale Invoice',
     buyerNTN: buyerNTN,
     buyerName: buyerName,
     buyerAddress: document.getElementById('buyer-address').value.trim(),
@@ -6751,49 +6909,762 @@ function cancelDraftMode() {
   resetInvoiceForm();
 }
 
+// ==========================================
+// EXCEL BULK INGESTION & TEMPLATE ENGINE
+// ==========================================
+
+async function downloadInvoiceTemplate() {
+  try {
+    const res = await window.api.excel.downloadTemplate(activeCompanyId);
+    if (res.canceled) return;
+    if (res.success) {
+      alert(`Excel template successfully saved to:\n${res.filePath}`);
+    } else {
+      alert(`Failed to save template: ${res.error || 'Unknown error'}`);
+    }
+  } catch (err) {
+    console.error('Download template error:', err);
+    alert('Error downloading Excel template: ' + err.message);
+  }
+}
+
+async function uploadExcelInvoices() {
+  try {
+    const res = await window.api.excel.importDrafts(activeCompanyId, fbrSettings.fbrEnvMode);
+    if (res.canceled) return;
+    if (res.success) {
+      alert(`🎉 Bulk Excel Upload Successful!\n\n` +
+        `• Staged Invoices: ${res.totalInvoices.toLocaleString()}\n` +
+        `• Total Line Items: ${res.totalLineItems.toLocaleString()}\n` +
+        `• Total Grand Amount: PKR ${res.totalAmount.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}\n\n` +
+        `All invoices have been safely drafted in your local database. You can now verify line items, select drafts, and batch post them to FBR in one go.`);
+
+      switchPanel('drafts');
+    } else {
+      alert(`Failed to import Excel invoices:\n${res.error || 'Validation error'}`);
+    }
+  } catch (err) {
+    console.error('Import Excel error:', err);
+    alert('Error importing Excel file: ' + err.message);
+  }
+}
+
+// ==========================================
+// DRAFTS SELECTION & BULK BATCH POSTING
+// ==========================================
+
+let selectedDraftIds = new Set();
+let allCurrentDrafts = [];
+let isBatchPostingActive = false;
+let isBatchPostingHalted = false;
+let currentQuickViewDraft = null;
+
 async function renderDrafts() {
   await refreshDatabaseLists();
   const tbody = document.getElementById('drafts-list-tbody');
+  if (!tbody) return;
   tbody.innerHTML = '';
 
   try {
     const all = await dbGetInvoices();
-    const drafts = all.filter(inv => inv.status === 'Draft' && (inv.companyId === activeCompanyId || (!inv.companyId && activeCompanyId === 1)));
+    allCurrentDrafts = all.filter(inv => inv.status === 'Draft' && (inv.companyId === activeCompanyId || (!inv.companyId && activeCompanyId === 1)));
 
-    if (drafts.length === 0) {
-      tbody.innerHTML = `
-        <tr>
-          <td colspan="7" style="text-align: center; color: var(--text-muted); padding: 32px 0;">
-            No draft invoices found.
-          </td>
-        </tr>
-      `;
-      return;
-    }
-
-    drafts.forEach(d => {
-      const tr = document.createElement('tr');
-      tr.innerHTML = `
-        <td>${d.invoiceDate}</td>
-        <td>${(String(d.invoiceRefNo || '').trim() && String(d.invoiceRefNo || '').trim() !== '0') ? d.invoiceRefNo : '-'}</td>
-        <td><strong>${d.buyerName}</strong></td>
-        <td>${d.buyerNTN}</td>
-        <td class="cell-bold">PKR ${d.grandTotal.toFixed(2)}</td>
-        <td>
-          <span class="status-tag sandbox">
-            ${d.envMode.toUpperCase()}
-          </span>
-        </td>
-        <td style="text-align: center; display: flex; justify-content: center; gap: 8px;">
-          <button class="btn btn-secondary btn-sm" onclick="resumeDraft(${d.id})">✏️ Resume</button>
-          <button class="btn btn-danger btn-sm" onclick="deleteDraft(${d.id})">🗑️ Delete</button>
-        </td>
-      `;
-      tbody.appendChild(tr);
+    // Clean up selectedDraftIds to only contain IDs that exist in allCurrentDrafts
+    const validIds = new Set(allCurrentDrafts.map(d => d.id));
+    selectedDraftIds.forEach(id => {
+      if (!validIds.has(id)) selectedDraftIds.delete(id);
     });
+
+    filterDraftsList();
   } catch (err) {
     console.error("Error rendering drafts:", err);
   }
+}
+
+function filterDraftsList() {
+  const query = (document.getElementById('drafts-search-input')?.value || '').trim().toLowerCase();
+  const tbody = document.getElementById('drafts-list-tbody');
+  if (!tbody) return;
+  tbody.innerHTML = '';
+
+  const filtered = allCurrentDrafts.filter(d => {
+    if (!query) return true;
+    const buyer = (d.buyerName || '').toLowerCase();
+    const ntn = (d.buyerNTN || '').toLowerCase();
+    const ref = (d.invoiceRefNo || '').toLowerCase();
+    const invNo = (d.invoiceNumber || '').toLowerCase();
+    return buyer.includes(query) || ntn.includes(query) || ref.includes(query) || invNo.includes(query);
+  });
+
+  if (filtered.length === 0) {
+    tbody.innerHTML = `
+      <tr>
+        <td colspan="11" style="text-align: center; color: var(--text-muted); padding: 36px 0;">
+          ${allCurrentDrafts.length === 0 
+            ? 'No draft invoices staged. Click <strong>"Upload Excel"</strong> to import bulk invoices, or create a draft in Create Invoice screen.' 
+            : 'No draft invoices match your search query.'}
+        </td>
+      </tr>
+    `;
+    updateDraftsSelectionUI(filtered);
+    return;
+  }
+
+  filtered.forEach(d => {
+    const isChecked = selectedDraftIds.has(d.id);
+    const tr = document.createElement('tr');
+    tr.id = `draft-row-${d.id}`;
+    if (isChecked) tr.classList.add('selected-row');
+
+    const itemCount = d.itemCount || (d.items ? d.items.length : 1);
+    const subtotal = Number(d.subtotalExcl) || 0;
+    const salesTax = Number(d.totalSalesTax) || 0;
+    const grandTotal = Number(d.grandTotal) || 0;
+    const isSandbox = (d.envMode || fbrSettings.fbrEnvMode) === 'sandbox';
+
+    tr.innerHTML = `
+      <td style="text-align: center; width: 40px;">
+        <input type="checkbox" class="chk-draft-item" data-id="${d.id}" ${isChecked ? 'checked' : ''} onchange="toggleDraftSelection(${d.id}, this)" style="width: 15px; height: 15px; cursor: pointer; accent-color: var(--accent-primary);">
+      </td>
+      <td style="font-size: 12.5px;">${d.invoiceDate}</td>
+      <td style="font-family: monospace; font-size: 12px; font-weight: 600; color: var(--text-primary);">
+        ${(String(d.invoiceRefNo || '').trim() && String(d.invoiceRefNo || '').trim() !== '0') ? d.invoiceRefNo : (d.invoiceNumber || '-')}
+      </td>
+      <td>
+        <div style="font-weight: 600; color: var(--text-primary); font-size: 13px;">${d.buyerName || 'Unregistered'}</div>
+        <div style="font-size: 11px; color: var(--text-muted);">${d.buyerProvince || ''}</div>
+      </td>
+      <td style="font-family: monospace; font-size: 12px;">${d.buyerNTN || d.buyerCNIC || '9999997'}</td>
+      <td style="text-align: center;">
+        <span class="badge" style="background: rgba(99, 102, 241, 0.12); color: var(--accent-primary); font-weight: 700; padding: 2px 8px; border-radius: 12px; font-size: 11px;">
+          ${itemCount} ${itemCount === 1 ? 'item' : 'items'}
+        </span>
+      </td>
+      <td style="text-align: right; font-size: 12px;">PKR ${subtotal.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
+      <td style="text-align: right; font-size: 12px; color: var(--warning);">PKR ${salesTax.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
+      <td style="text-align: right; font-weight: 700; font-size: 13px; color: var(--text-primary);">PKR ${grandTotal.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
+      <td style="text-align: center;">
+        <span class="status-tag ${isSandbox ? 'sandbox' : 'success'}" style="font-size: 9.5px; padding: 2px 6px;">
+          ${isSandbox ? 'SANDBOX' : 'PRODUCTION'}
+        </span>
+      </td>
+      <td style="text-align: center; white-space: nowrap;">
+        <div style="display: flex; gap: 6px; justify-content: center;">
+          <button class="btn btn-secondary btn-sm" onclick="openDraftQuickView(${d.id})" title="Preview line items & tax breakdown" style="padding: 4px 8px; font-size: 11px;">👁️ View</button>
+          <button class="btn btn-secondary btn-sm" onclick="resumeDraft(${d.id})" title="Load into Invoice Form" style="padding: 4px 8px; font-size: 11px;">✏️ Edit</button>
+          <button class="btn btn-danger btn-sm" onclick="deleteDraft(${d.id})" title="Delete Draft" style="padding: 4px 8px; font-size: 11px;">🗑️</button>
+        </div>
+      </td>
+    `;
+    tbody.appendChild(tr);
+  });
+
+  updateDraftsSelectionUI(filtered);
+}
+
+function updateDraftsSelectionUI(currentFilteredDrafts) {
+  const totalDrafts = allCurrentDrafts.length;
+  const selectedCount = selectedDraftIds.size;
+
+  let selectedTotalAmt = 0;
+  allCurrentDrafts.forEach(d => {
+    if (selectedDraftIds.has(d.id)) {
+      selectedTotalAmt += Number(d.grandTotal) || 0;
+    }
+  });
+
+  const selectedCountElem = document.getElementById('drafts-selected-count');
+  const totalCountElem = document.getElementById('drafts-total-count');
+  const selectedTotalElem = document.getElementById('drafts-selected-total');
+  const postBtnCount = document.getElementById('btn-batch-post-count');
+  const postBtn = document.getElementById('btn-batch-post-drafts');
+  const deleteBtn = document.getElementById('btn-batch-delete-drafts');
+  const masterChk = document.getElementById('chk-drafts-select-all');
+
+  if (selectedCountElem) selectedCountElem.textContent = selectedCount.toLocaleString();
+  if (totalCountElem) totalCountElem.textContent = totalDrafts.toLocaleString();
+  if (selectedTotalElem) selectedTotalElem.textContent = `PKR ${selectedTotalAmt.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+  if (postBtnCount) postBtnCount.textContent = selectedCount.toLocaleString();
+
+  if (postBtn) {
+    postBtn.disabled = selectedCount === 0;
+    postBtn.style.opacity = selectedCount === 0 ? '0.6' : '1';
+    postBtn.style.cursor = selectedCount === 0 ? 'not-allowed' : 'pointer';
+  }
+
+  if (deleteBtn) {
+    deleteBtn.disabled = selectedCount === 0;
+    deleteBtn.style.opacity = selectedCount === 0 ? '0.6' : '1';
+    deleteBtn.style.cursor = selectedCount === 0 ? 'not-allowed' : 'pointer';
+  }
+
+  if (masterChk && currentFilteredDrafts && currentFilteredDrafts.length > 0) {
+    const allFilteredSelected = currentFilteredDrafts.every(d => selectedDraftIds.has(d.id));
+    const someFilteredSelected = currentFilteredDrafts.some(d => selectedDraftIds.has(d.id));
+
+    masterChk.checked = allFilteredSelected;
+    masterChk.indeterminate = !allFilteredSelected && someFilteredSelected;
+  } else if (masterChk) {
+    masterChk.checked = false;
+    masterChk.indeterminate = false;
+  }
+}
+
+function toggleDraftSelection(id, chk) {
+  if (chk.checked) {
+    selectedDraftIds.add(id);
+    document.getElementById(`draft-row-${id}`)?.classList.add('selected-row');
+  } else {
+    selectedDraftIds.delete(id);
+    document.getElementById(`draft-row-${id}`)?.classList.remove('selected-row');
+  }
+
+  const query = (document.getElementById('drafts-search-input')?.value || '').trim().toLowerCase();
+  const filtered = allCurrentDrafts.filter(d => {
+    if (!query) return true;
+    const buyer = (d.buyerName || '').toLowerCase();
+    const ntn = (d.buyerNTN || '').toLowerCase();
+    const ref = (d.invoiceRefNo || '').toLowerCase();
+    const invNo = (d.invoiceNumber || '').toLowerCase();
+    return buyer.includes(query) || ntn.includes(query) || ref.includes(query) || invNo.includes(query);
+  });
+
+  updateDraftsSelectionUI(filtered);
+}
+
+function toggleAllDraftsSelection(masterChk) {
+  const query = (document.getElementById('drafts-search-input')?.value || '').trim().toLowerCase();
+  const filtered = allCurrentDrafts.filter(d => {
+    if (!query) return true;
+    const buyer = (d.buyerName || '').toLowerCase();
+    const ntn = (d.buyerNTN || '').toLowerCase();
+    const ref = (d.invoiceRefNo || '').toLowerCase();
+    const invNo = (d.invoiceNumber || '').toLowerCase();
+    return buyer.includes(query) || ntn.includes(query) || ref.includes(query) || invNo.includes(query);
+  });
+
+  if (masterChk.checked) {
+    filtered.forEach(d => selectedDraftIds.add(d.id));
+  } else {
+    filtered.forEach(d => selectedDraftIds.delete(d.id));
+  }
+
+  const checkboxes = document.querySelectorAll('.chk-draft-item');
+  checkboxes.forEach(chk => {
+    const id = Number(chk.dataset.id);
+    chk.checked = selectedDraftIds.has(id);
+    const row = document.getElementById(`draft-row-${id}`);
+    if (selectedDraftIds.has(id)) {
+      row?.classList.add('selected-row');
+    } else {
+      row?.classList.remove('selected-row');
+    }
+  });
+
+  updateDraftsSelectionUI(filtered);
+}
+
+async function batchDeleteSelectedDrafts() {
+  if (selectedDraftIds.size === 0) {
+    alert("Please select at least one draft to delete.");
+    return;
+  }
+
+  const confirmed = await showConfirm(
+    `Are you sure you want to permanently delete ${selectedDraftIds.size} selected draft invoice(s)?`,
+    "Delete Drafts",
+    "Yes, Delete Selected"
+  );
+
+  if (!confirmed) return;
+
+  const ids = Array.from(selectedDraftIds);
+  for (const id of ids) {
+    try {
+      await dbDeleteInvoice(id);
+    } catch (e) {
+      console.error('Error deleting draft ID ' + id, e);
+    }
+  }
+
+  selectedDraftIds.clear();
+  await renderDrafts();
+}
+
+// Quick View Modal
+async function openDraftQuickView(id) {
+  try {
+    const draft = await dbGetInvoiceFull(id);
+    if (!draft) {
+      alert("Draft not found.");
+      return;
+    }
+    currentQuickViewDraft = draft;
+
+    const modal = document.getElementById('draft-view-modal');
+    const content = document.getElementById('draft-view-content');
+    const title = document.getElementById('draft-view-title');
+
+    title.innerHTML = `<span>📄</span> Draft Preview: ${draft.invoiceRefNo || draft.invoiceNumber} (${draft.buyerName})`;
+
+    const isSandbox = (draft.envMode || fbrSettings.fbrEnvMode) === 'sandbox';
+
+    let itemsRows = '';
+    (draft.items || []).forEach((it, idx) => {
+      const q = Number(it.quantity) || 0;
+      const rate = Number(it.rateValue || it.unitPrice) || 0;
+      const disc = Number(it.discount) || 0;
+      const valExcl = Math.max(0, (q * rate) - disc);
+      const taxRate = Number(it.taxRatePercent) || 18;
+      const stAmt = Number(it.salesTaxApplicable) || 0;
+      const ftAmt = Number(it.furtherTax) || 0;
+      const lineTotal = valExcl + stAmt + ftAmt;
+
+      itemsRows += `
+        <tr>
+          <td style="text-align: center;">${idx + 1}</td>
+          <td>
+            <div style="font-weight: 600; color: var(--text-primary);">${it.productDescription || 'Item'}</div>
+            <div style="font-size: 11px; color: var(--text-muted);">${it.saleType || 'Goods at standard rate'}</div>
+          </td>
+          <td style="font-family: monospace; font-size: 11px;">${it.hsCode || '-'}</td>
+          <td style="text-align: center;">${it.uom || 'PCS'}</td>
+          <td style="text-align: center; font-weight: 600;">${q}</td>
+          <td style="text-align: right;">${rate.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
+          <td style="text-align: right;">${disc > 0 ? disc.toFixed(2) : '-'}</td>
+          <td style="text-align: right;">${valExcl.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
+          <td style="text-align: center;">${taxRate}%</td>
+          <td style="text-align: right; color: var(--warning);">${stAmt.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
+          <td style="text-align: right;">${ftAmt > 0 ? ftAmt.toFixed(2) : '-'}</td>
+          <td style="text-align: right; font-weight: 700;">${lineTotal.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
+        </tr>
+      `;
+    });
+
+    content.innerHTML = `
+      <!-- Header Meta Grid -->
+      <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 14px; background: var(--bg-card); padding: 14px 18px; border-radius: var(--radius-md); border: 1px solid var(--border-color); margin-bottom: 20px;">
+        <div>
+          <div style="font-size: 11px; text-transform: uppercase; color: var(--text-muted); font-weight: 600;">Buyer Name</div>
+          <div style="font-weight: 700; color: var(--text-primary); font-size: 13.5px; margin-top: 2px;">${draft.buyerName || 'Unregistered'}</div>
+          <div style="font-size: 11.5px; color: var(--text-secondary); margin-top: 2px;">${draft.buyerAddress || 'Pakistan'}</div>
+        </div>
+        <div>
+          <div style="font-size: 11px; text-transform: uppercase; color: var(--text-muted); font-weight: 600;">NTN / CNIC</div>
+          <div style="font-family: monospace; font-weight: 600; color: var(--accent-primary); font-size: 13.5px; margin-top: 2px;">${draft.buyerNTN || draft.buyerCNIC || '9999997'}</div>
+          <div style="font-size: 11.5px; color: var(--text-secondary); margin-top: 2px;">Type: ${draft.buyerRegistrationType || 'Unregistered'} | ${draft.buyerProvince || 'PUNJAB'}</div>
+        </div>
+        <div>
+          <div style="font-size: 11px; text-transform: uppercase; color: var(--text-muted); font-weight: 600;">Invoice Reference</div>
+          <div style="font-family: monospace; font-weight: 600; color: var(--text-primary); font-size: 13px; margin-top: 2px;">${draft.invoiceRefNo || '-'}</div>
+          <div style="font-size: 11.5px; color: var(--text-muted); margin-top: 2px;">Date: ${draft.invoiceDate}</div>
+        </div>
+        <div>
+          <div style="font-size: 11px; text-transform: uppercase; color: var(--text-muted); font-weight: 600;">Environment</div>
+          <div style="margin-top: 4px;">
+            <span class="status-tag ${isSandbox ? 'sandbox' : 'success'}">${isSandbox ? 'FBR SANDBOX' : 'LIVE PRODUCTION'}</span>
+          </div>
+          <div style="font-size: 11.5px; color: var(--text-secondary); margin-top: 4px;">Scenario: ${draft.scenarioId || 'SN001'}</div>
+        </div>
+      </div>
+
+      <!-- Line Items Table -->
+      <div class="setup-table-wrapper" style="max-height: 280px; overflow-y: auto; margin-bottom: 20px;">
+        <table class="setup-table" style="font-size: 12px;">
+          <thead>
+            <tr>
+              <th style="width: 30px; text-align: center;">#</th>
+              <th>Product Description</th>
+              <th>HS Code</th>
+              <th style="text-align: center;">UOM</th>
+              <th style="text-align: center;">Qty</th>
+              <th style="text-align: right;">Unit Price</th>
+              <th style="text-align: right;">Discount</th>
+              <th style="text-align: right;">Value Excl. ST</th>
+              <th style="text-align: center;">Rate</th>
+              <th style="text-align: right;">Sales Tax</th>
+              <th style="text-align: right;">Further Tax</th>
+              <th style="text-align: right;">Total (PKR)</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${itemsRows || '<tr><td colspan="12" style="text-align: center; color: var(--text-muted);">No items found in this draft.</td></tr>'}
+          </tbody>
+        </table>
+      </div>
+
+      <!-- Financial Totals Summary -->
+      <div style="display: flex; justify-content: flex-end;">
+        <div style="width: 340px; background: var(--bg-card); border: 1px solid var(--border-color); border-radius: var(--radius-md); padding: 14px 18px; display: flex; flex-direction: column; gap: 6px;">
+          <div style="display: flex; justify-content: space-between; font-size: 12.5px; color: var(--text-secondary);">
+            <span>Subtotal Excl. ST:</span>
+            <strong style="color: var(--text-primary);">PKR ${(Number(draft.subtotalExcl) || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</strong>
+          </div>
+          ${(Number(draft.totalDiscount) || 0) > 0 ? `
+            <div style="display: flex; justify-content: space-between; font-size: 12.5px; color: var(--text-secondary);">
+              <span>Total Discount:</span>
+              <strong style="color: var(--warning);">- PKR ${(Number(draft.totalDiscount) || 0).toFixed(2)}</strong>
+            </div>
+          ` : ''}
+          <div style="display: flex; justify-content: space-between; font-size: 12.5px; color: var(--text-secondary);">
+            <span>Sales Tax:</span>
+            <strong style="color: var(--accent-primary);">PKR ${(Number(draft.totalSalesTax) || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</strong>
+          </div>
+          ${(Number(draft.furtherTaxAmt) || 0) > 0 ? `
+            <div style="display: flex; justify-content: space-between; font-size: 12.5px; color: var(--text-secondary);">
+              <span>Further Tax:</span>
+              <strong style="color: var(--warning);">PKR ${(Number(draft.furtherTaxAmt) || 0).toFixed(2)}</strong>
+            </div>
+          ` : ''}
+          ${(Number(draft.totalExtraTax) || 0) > 0 ? `
+            <div style="display: flex; justify-content: space-between; font-size: 12.5px; color: var(--text-secondary);">
+              <span>Extra Tax:</span>
+              <strong style="color: var(--warning);">PKR ${(Number(draft.totalExtraTax) || 0).toFixed(2)}</strong>
+            </div>
+          ` : ''}
+          <div style="display: flex; justify-content: space-between; font-size: 14px; font-weight: 700; color: var(--text-primary); border-top: 1px dashed var(--border-color); padding-top: 8px; margin-top: 4px;">
+            <span>Grand Total:</span>
+            <span>PKR ${(Number(draft.grandTotal) || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+          </div>
+        </div>
+      </div>
+    `;
+
+    document.getElementById('btn-draft-view-edit').onclick = () => {
+      closeDraftViewModal();
+      resumeDraft(id);
+    };
+
+    document.getElementById('btn-draft-view-post').onclick = () => {
+      closeDraftViewModal();
+      selectedDraftIds.clear();
+      selectedDraftIds.add(id);
+      startBatchPostSelectedDrafts();
+    };
+
+    modal.classList.add('active');
+  } catch (err) {
+    console.error('Error in openDraftQuickView:', err);
+    alert('Error loading draft details: ' + err.message);
+  }
+}
+
+function closeDraftViewModal() {
+  document.getElementById('draft-view-modal')?.classList.remove('active');
+  currentQuickViewDraft = null;
+}
+
+// Build FBR-compliant JSON payload from draft record
+function buildFbrPayloadFromDraft(draft) {
+  const isSandbox = fbrSettings.fbrEnvMode === 'sandbox';
+
+  const roundTo2 = (num) => {
+    if (typeof num !== 'number') return num;
+    return Math.round((num + Number.EPSILON) * 100) / 100;
+  };
+
+  const items = (draft.items || []).map(it => {
+    const qty = Number(it.quantity) || 0;
+    const unitPrice = Number(it.rateValue || it.unitPrice) || 0;
+    const discountVal = Number(it.discount) || 0;
+    const rowValExcl = Math.max(0, (qty * unitPrice) - discountVal);
+    const retailPrice = Number(it.retailPrice) || 0;
+    const taxRate = Number(it.taxRatePercent) || 18;
+    const salesTax = Number(it.salesTaxApplicable) || 0;
+    const furtherTax = Number(it.furtherTax) || 0;
+    const extraTax = Number(it.extraTax) || 0;
+    const fedPayable = Number(it.fedPayable) || 0;
+    const saleType = it.saleType || 'Goods at standard rate';
+
+    let rateText = `${taxRate}%`;
+    if (saleType.includes('Exempt')) {
+      rateText = 'Exempt';
+    } else if (saleType.includes('zero-rate')) {
+      rateText = '0%';
+    } else if (saleType.includes('Cement')) {
+      rateText = 'Rs.' + taxRate;
+    } else if (saleType.includes('CNG Sales')) {
+      rateText = 'Rs.' + taxRate;
+    } else if (saleType.includes('Goods (FED in ST Mode)')) {
+      rateText = `${taxRate}% and Rs. 80 per Liter`;
+    }
+
+    const itemPayload = {
+      hsCode: it.hsCode || '8482.10.00',
+      productDescription: it.productDescription || 'Item',
+      rate: rateText,
+      uoM: (() => {
+        if (it.hsCode && (it.hsCode.startsWith('7214') || it.hsCode.startsWith('7216') || it.hsCode.startsWith('7204.49') || it.hsCode.startsWith('7204.10'))) {
+          return 'MT';
+        }
+        return it.uom || 'PCS';
+      })(),
+      quantity: qty,
+      valueSalesExcludingST: roundTo2(rowValExcl),
+      fixedNotifiedValueOrRetailPrice: (() => {
+        if (saleType.includes('3rd Schedule Goods') || it.taxedAtRetail === true) {
+          return roundTo2(retailPrice * qty);
+        }
+        return 0.00;
+      })(),
+      salesTaxApplicable: roundTo2(salesTax),
+      salesTaxWithheldAtSource: roundTo2(it.salesTaxWithheldAtSource || 0),
+      extraTax: extraTax > 0 ? roundTo2(extraTax) : "",
+      furtherTax: roundTo2(furtherTax),
+      sroScheduleNo: saleType.includes('3rd Schedule Goods') ? (it.sroScheduleNo || 'THIRD SCHEDULE') : (it.sroScheduleNo || ''),
+      fedPayable: roundTo2(fedPayable),
+      discount: roundTo2(discountVal),
+      saleType: (() => {
+        let mappedSt = saleType;
+        if (mappedSt === '3rd Schedule Goods') return ' 3rd Schedule Goods ';
+        if (mappedSt === 'Services (FED in ST Mode)') return ' Services (FED in ST Mode) ';
+        if (mappedSt === 'Services') return ' Services ';
+        if (mappedSt === 'Processing/ Conversion of Goods') {
+          if (it.hsCode && it.hsCode.startsWith('7204')) return 'Ship breaking';
+          if (it.hsCode && it.hsCode.startsWith('72')) return 'Steel melting and re-rolling';
+          return 'Processing/Conversion of Goods';
+        }
+        return mappedSt;
+      })(),
+      sroItemSerialNo: it.sroItemSerialNo || ''
+    };
+
+    if (fbrSettings.sendTotalVal === true) {
+      itemPayload.totalValues = roundTo2(
+        itemPayload.valueSalesExcludingST + 
+        itemPayload.salesTaxApplicable + 
+        itemPayload.furtherTax + 
+        (typeof itemPayload.extraTax === 'number' ? itemPayload.extraTax : 0) + 
+        itemPayload.fedPayable
+      );
+    } else {
+      itemPayload.totalValues = 0.00;
+    }
+
+    return itemPayload;
+  });
+
+  const buyerNTNCNIC = (draft.buyerNTN || draft.buyerCNIC || '9999997').replace(/-/g, '');
+
+  const payload = {
+    invoiceType: draft.invoiceType || 'Sale Invoice',
+    invoiceDate: draft.invoiceDate || new Date().toISOString().split('T')[0],
+    sellerNTNCNIC: fbrSettings.sellerNTN ? fbrSettings.sellerNTN.replace(/-/g, '') : '',
+    sellerBusinessName: fbrSettings.sellerName || '',
+    sellerProvince: fbrSettings.sellerProvince || 'Sindh',
+    sellerAddress: fbrSettings.sellerAddress || '',
+    buyerNTNCNIC: buyerNTNCNIC,
+    buyerBusinessName: draft.buyerName || 'Unregistered Buyer',
+    buyerProvince: draft.buyerProvince || 'PUNJAB',
+    buyerAddress: draft.buyerAddress || 'Pakistan',
+    buyerRegistrationType: draft.buyerRegistrationType || 'Unregistered',
+    invoiceRefNo: (String(draft.invoiceRefNo || '').trim() && String(draft.invoiceRefNo || '').trim() !== '0') ? draft.invoiceRefNo : '',
+    dataSource: "",
+    items: items
+  };
+
+  if (isSandbox) {
+    payload.scenarioId = draft.scenarioId || 'SN001';
+  }
+
+  return payload;
+}
+
+// Batch Post Engine
+async function startBatchPostSelectedDrafts() {
+  if (selectedDraftIds.size === 0) {
+    alert("Please select at least one draft to post.");
+    return;
+  }
+
+  if (!fbrSettings.sellerNTN || !fbrSettings.fbrToken) {
+    alert("FBR Gateway credentials missing!\nPlease configure your Seller NTN and Bearer Security Token under Integration Settings before reporting invoices.");
+    switchPanel('settings');
+    return;
+  }
+
+  const idsToPost = Array.from(selectedDraftIds);
+  const total = idsToPost.length;
+
+  const confirmed = await showConfirm(
+    `You are about to report ${total} invoice(s) to the FBR Gateway (${fbrSettings.fbrEnvMode.toUpperCase()}).\n\nAre you sure you want to proceed?`,
+    "Post Invoices to FBR Gateway",
+    `🚀 Yes, Post ${total} Invoices`
+  );
+
+  if (!confirmed) return;
+
+  isBatchPostingActive = true;
+  isBatchPostingHalted = false;
+
+  const modal = document.getElementById('batch-post-modal');
+  const envBadge = document.getElementById('batch-modal-env-badge');
+  const progressText = document.getElementById('batch-progress-status-text');
+  const progressPercent = document.getElementById('batch-progress-percent');
+  const progressBar = document.getElementById('batch-progress-bar');
+  const statTotal = document.getElementById('batch-stat-total');
+  const statSuccess = document.getElementById('batch-stat-success');
+  const statFailed = document.getElementById('batch-stat-failed');
+  const statRemaining = document.getElementById('batch-stat-remaining');
+  const logBox = document.getElementById('batch-post-log');
+  const logCounter = document.getElementById('batch-log-counter');
+  const stopBtn = document.getElementById('btn-batch-stop');
+  const closeBtn = document.getElementById('btn-batch-close');
+
+  const isSandbox = fbrSettings.fbrEnvMode === 'sandbox';
+  if (envBadge) {
+    envBadge.textContent = isSandbox ? 'FBR Sandbox' : 'Live Production';
+    envBadge.style.backgroundColor = isSandbox ? 'var(--warning)' : 'var(--success)';
+  }
+
+  statTotal.textContent = total.toString();
+  statSuccess.textContent = '0';
+  statFailed.textContent = '0';
+  statRemaining.textContent = total.toString();
+  progressPercent.textContent = '0%';
+  progressBar.style.width = '0%';
+  progressText.textContent = `Starting batch queue of ${total} invoices...`;
+  logBox.innerHTML = '';
+  logCounter.textContent = '0 transactions';
+  stopBtn.style.display = 'inline-block';
+  closeBtn.style.display = 'none';
+
+  modal.classList.add('active');
+
+  const appendLog = (msg, color = '#e2e8f0') => {
+    const time = new Date().toLocaleTimeString();
+    const entry = document.createElement('div');
+    entry.style.color = color;
+    entry.style.marginBottom = '4px';
+    entry.innerHTML = `<span style="color: #64748b;">[${time}]</span> ${msg}`;
+    logBox.appendChild(entry);
+    logBox.scrollTop = logBox.scrollHeight;
+  };
+
+  appendLog(`[INIT] Initialized Gateway Posting Pipeline for ${total} invoices. Target: ${isSandbox ? 'SANDBOX' : 'PRODUCTION'}`, '#60a5fa');
+
+  let successCount = 0;
+  let failedCount = 0;
+
+  const url = isSandbox
+    ? "https://gw.fbr.gov.pk/di_data/v1/di/postinvoicedata_sb"
+    : "https://gw.fbr.gov.pk/di_data/v1/di/postinvoicedata";
+
+  for (let i = 0; i < idsToPost.length; i++) {
+    if (isBatchPostingHalted) {
+      appendLog(`[HALTED] User requested batch cancellation. Stopped after ${i} of ${total} invoices.`, '#f59e0b');
+      break;
+    }
+
+    const draftId = idsToPost[i];
+    const currentIndex = i + 1;
+
+    try {
+      const draft = await dbGetInvoiceFull(draftId);
+      if (!draft) {
+        appendLog(`[SKIP] Draft #${draftId} not found in database.`, '#ef4444');
+        failedCount++;
+        statFailed.textContent = failedCount.toString();
+        statRemaining.textContent = (total - currentIndex).toString();
+        continue;
+      }
+
+      const refNo = draft.invoiceRefNo || `Draft #${draftId}`;
+      progressText.textContent = `Posting invoice ${currentIndex} of ${total}: ${refNo} (${draft.buyerName})...`;
+
+      const payload = buildFbrPayloadFromDraft(draft);
+
+      const response = await window.api.fbrRequest({
+        url: url,
+        method: 'POST',
+        headers: {
+          'Accept': '*/*',
+          'Accept-Encoding': 'deflate, gzip',
+          'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/138.0.0.0 Safari/537.36',
+          'Authorization': fbrSettings.fbrToken.toLowerCase().startsWith('bearer ') ? fbrSettings.fbrToken : `Bearer ${fbrSettings.fbrToken}`
+        },
+        body: payload
+      });
+
+      const res = response.data;
+      const valRes = (res && res.validationResponse) || {};
+      const status = (valRes.status || 'invalid').toLowerCase();
+
+      if (response.success && status === 'valid') {
+        const fbrInvNo = res.invoiceNumber || `FBR${Math.floor(100000 + Math.random() * 900000)}DI2026`;
+
+        draft.status = 'Posted';
+        draft.invoiceNumber = fbrInvNo;
+        draft.timestamp = res.dated || new Date().toLocaleString();
+
+        await dbSaveInvoice(draft, draft.items || [], draft.taxesBreakdown || []);
+
+        successCount++;
+        statSuccess.textContent = successCount.toString();
+        selectedDraftIds.delete(draftId);
+
+        appendLog(`[SUCCESS] #${currentIndex}/${total} (${refNo}) -> FBR Invoice Issued: <strong>${fbrInvNo}</strong>`, '#10b981');
+      } else {
+        failedCount++;
+        statFailed.textContent = failedCount.toString();
+
+        const { errorCode, errorMessage } = extractFbrError(response);
+        const resolvedText = translateFbrErrorCode(errorCode);
+        appendLog(`[REJECTED] #${currentIndex}/${total} (${refNo}) -> [Code ${errorCode || 'N/A'}] ${errorMessage || 'Invalid payload'} (${resolvedText})`, '#ef4444');
+      }
+    } catch (err) {
+      failedCount++;
+      statFailed.textContent = failedCount.toString();
+      appendLog(`[ERROR] #${currentIndex}/${total} (Draft #${draftId}) -> ${err.message}`, '#ef4444');
+    }
+
+    statRemaining.textContent = Math.max(0, total - currentIndex).toString();
+    const pct = Math.round((currentIndex / total) * 100);
+    progressPercent.textContent = `${pct}%`;
+    progressBar.style.width = `${pct}%`;
+    logCounter.textContent = `${currentIndex} of ${total} processed`;
+
+    if (i < idsToPost.length - 1 && !isBatchPostingHalted) {
+      await sleep(350);
+    }
+  }
+
+  isBatchPostingActive = false;
+  stopBtn.style.display = 'none';
+  closeBtn.style.display = 'inline-block';
+
+  if (isBatchPostingHalted) {
+    progressText.textContent = `Batch posting halted: ${successCount} posted, ${failedCount} failed of ${total}.`;
+  } else {
+    progressText.textContent = `Batch posting complete: ${successCount} successful, ${failedCount} failed of ${total}.`;
+    appendLog(`[COMPLETE] Batch post run finished! ${successCount} posted, ${failedCount} rejected.`, successCount > 0 ? '#10b981' : '#f59e0b');
+  }
+
+  try {
+    await loadHistory();
+    renderDashboard();
+    await renderDrafts();
+  } catch (e) {
+    console.error('Error refreshing post-batch lists:', e);
+  }
+}
+
+function stopBatchPosting() {
+  if (isBatchPostingActive) {
+    isBatchPostingHalted = true;
+    const stopBtn = document.getElementById('btn-batch-stop');
+    if (stopBtn) {
+      stopBtn.disabled = true;
+      stopBtn.textContent = 'Stopping...';
+    }
+  }
+}
+
+function closeBatchPostModal() {
+  document.getElementById('batch-post-modal')?.classList.remove('active');
+  isBatchPostingActive = false;
+  isBatchPostingHalted = false;
+  renderDrafts();
 }
 
 async function resumeDraft(id) {
@@ -6890,6 +7761,7 @@ async function deleteDraft(id) {
   if (await showConfirm("Are you sure you want to delete this draft?")) {
     try {
       await dbDeleteInvoice(id);
+      selectedDraftIds.delete(id);
       await renderDrafts();
     } catch (err) {
       alert("Error deleting draft: " + err.message);

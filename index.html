@@ -3,8 +3,8 @@
 
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=device-width, initial-scale=1.0">
-  <title>FBR Digital Invoicing Suite 2026</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>FBR Digital Invoicing 2026</title>
   <link rel="stylesheet" href="style.css">
   <script>
     // Instantly apply theme from LocalStorage on launch to eliminate transitions layout flash
@@ -46,6 +46,13 @@
           </svg>
           <span class="nav-text">Sale Invoices</span>
         </div>
+        <div class="nav-item" id="nav-drafts" onclick="switchPanel('drafts')">
+          <svg viewBox="0 0 24 24" style="fill: none; stroke: currentColor; stroke-width: 2;">
+            <path stroke-linecap="round" stroke-linejoin="round"
+              d="M16.862 4.487l1.687-1.688a1.875 1.875 0 112.652 2.652L10.582 16.07a4.5 4.5 0 01-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 011.13-1.897l8.932-8.931zm0 0L19.5 7.125M18 14v4.75A2.25 2.25 0 0115.75 21H5.25A2.25 2.25 0 013 18.75V8.25A2.25 2.25 0 015.25 6H10" />
+          </svg>
+          <span class="nav-text">Draft Invoices</span>
+        </div>
 
         <div class="setup-header">Setup Modules</div>
 
@@ -84,7 +91,7 @@
             <path stroke-linecap="round" stroke-linejoin="round"
               d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
           </svg>
-          <span class="nav-text">Compliance Test Suite</span>
+          <span class="nav-text">Compliance Tests</span>
         </div>
         <div class="nav-item" id="nav-reports" onclick="toggleReportsSubmenu()">
           <svg viewBox="0 0 24 24"
@@ -122,6 +129,12 @@
          ========================================== -->
     <main class="main-content">
 
+      <!-- Company Trademark Watermark (Low Visibility on Every Screen) -->
+      <div class="screen-watermark" aria-hidden="true">
+        <img src="company_logo_white.png" alt="" class="watermark-logo watermark-dark">
+        <img src="company_logo.png" alt="" class="watermark-logo watermark-light">
+      </div>
+
       <!-- Voluntary Global Update Banner (shown only when a new release is detected) -->
       <div id="global-update-banner" style="display: none; background: linear-gradient(90deg, rgba(37, 99, 235, 0.12) 0%, rgba(99, 102, 241, 0.12) 100%); border: 1px solid var(--accent-primary); padding: 12px 18px; border-radius: var(--radius-md); margin-bottom: 20px; align-items: center; justify-content: space-between; gap: 16px;">
         <div style="display: flex; align-items: center; gap: 12px;">
@@ -141,8 +154,7 @@
       <section class="content-panel active" id="panel-dashboard">
         <div class="panel-header">
           <div class="panel-title">
-            <h1 id="dashboard-welcome">FBR Invoicing Suite</h1>
-            <p>Pakistan Real-time Supply Chain Integration Dashboard</p>
+            <h1 id="dashboard-welcome">FBR Digital Invoicing</h1>
           </div>
           <button class="btn btn-primary" onclick="switchPanel('invoice')">
             + New Invoice
@@ -204,27 +216,6 @@
               </table>
             </div>
           </div>
-
-          <div class="dashboard-card">
-            <div class="card-title">FBR Compliance 2026 Info</div>
-            <div style="font-size: 13px; line-height: 1.6; color: var(--text-secondary);">
-              <p style="margin-bottom: 12px;">This application implements real-time digital invoice uploading to FBR
-                using <strong>DI API V1.12</strong> specifications.</p>
-              <div
-                style="background-color: var(--bg-input); padding: 12px; border-radius: var(--radius-md); border: 1px solid var(--border-color); margin-bottom: 12px;">
-                <span style="color: var(--accent-primary); font-weight: 700;">Rules Applied:</span>
-                <ul
-                  style="margin-left: 16px; margin-top: 6px; font-size: 12px; display: flex; flex-direction: column; gap: 4px;">
-                  <li>Standard Sales Tax computed.</li>
-                  <li>Further Tax (4%) applied to Unregistered Buyers.</li>
-                  <li>Receipt QR code sized exactly 1" x 1" (v2.0, 25x25).</li>
-                </ul>
-              </div>
-              <p style="font-size: 12px; color: var(--text-muted);">
-                Sandbox testing mode allows using 28 scenarios (SN001-SN028) to test diverse supply chain transactions.
-              </p>
-            </div>
-          </div>
         </div>
       </section>
 
@@ -235,7 +226,13 @@
             <h1>Create FBR Digital Invoice</h1>
             <p>Prepare, validate, and report real-time compliance invoices</p>
           </div>
-          <div style="display: flex; gap: 8px; align-items: center;">
+          <div style="display: flex; gap: 8px; align-items: center; flex-wrap: wrap;">
+            <button class="btn btn-secondary" onclick="downloadInvoiceTemplate()" title="Download Excel template with standard columns for bulk drafting" style="display: flex; align-items: center; gap: 6px;">
+              <span>📥</span> Download Excel Template
+            </button>
+            <button class="btn btn-secondary" onclick="uploadExcelInvoices()" title="Upload Excel spreadsheet to stage bulk invoices as drafts" style="display: flex; align-items: center; gap: 6px;">
+              <span>📤</span> Upload Excel Invoices
+            </button>
             <button class="btn btn-secondary" onclick="resetInvoiceForm()">Clear Form</button>
           </div>
         </div>
@@ -650,6 +647,7 @@
           <table class="setup-table">
             <thead>
               <tr>
+                <th>Customer Code</th>
                 <th>Customer Name</th>
                 <th>NTN/CNIC</th>
                 <th>Province</th>
@@ -683,6 +681,7 @@
           <table class="setup-table">
             <thead>
               <tr>
+                <th>Product Code</th>
                 <th>Product Description</th>
                 <th>HS Code</th>
                 <th>UOM</th>
@@ -966,7 +965,7 @@
           <div class="form-grid">
             <div class="form-group col-2">
               <label class="form-label" for="app-current-version">Installed Version</label>
-              <input class="form-control" type="text" id="app-current-version" readonly value="v1.0.10"
+              <input class="form-control" type="text" id="app-current-version" readonly value="v1.0.11"
                 style="background-color: var(--bg-secondary); color: var(--text-secondary); font-weight: bold; text-align: center;">
             </div>
             <div class="form-group col-7">
@@ -1200,13 +1199,11 @@
         </div>
       </section>
 
-      <!-- 10. COMPLIANCE TEST SUITE PANEL -->
+      <!-- 10. COMPLIANCE TESTS PANEL -->
       <section class="content-panel" id="panel-sandbox-test">
         <div class="panel-header">
           <div class="panel-title">
-            <h1>FBR Sandbox Compliance Suite</h1>
-            <p>Run all 28 supply chain scenarios against the FBR validation gateway to confirm digital invoicing
-              compliance</p>
+            <h1>FBR Sandbox Compliance Tests</h1>
           </div>
           <div style="display: flex; align-items: center; gap: 15px;">
             <label style="display: flex; align-items: center; gap: 8px; font-size: 13px; font-weight: 600; cursor: pointer; color: var(--text-primary);">
@@ -1214,7 +1211,7 @@
               Post to FBR Sandbox Ledger
             </label>
             <button class="btn btn-primary" id="btn-run-sandbox-tests" onclick="runSandboxTestSuite()">
-              ⚡ Run Test Suite
+              ⚡ Run Tests
             </button>
           </div>
         </div>
@@ -1287,21 +1284,59 @@
         <div class="panel-header">
           <div class="panel-title">
             <h1>Draft Invoices</h1>
-            <p>Manage and resume offline drafted invoices</p>
+            <p>Stage, verify, and bulk-post digital invoices to FBR in one go</p>
           </div>
-          <button class="btn btn-secondary" onclick="switchPanel('history')">⬅️ Back to History Logs</button>
+          <div style="display: flex; gap: 8px; align-items: center; flex-wrap: wrap;">
+            <button class="btn btn-secondary" onclick="downloadInvoiceTemplate()" style="display: flex; align-items: center; gap: 6px;">
+              <span>📥</span> Download Template
+            </button>
+            <button class="btn btn-secondary" onclick="uploadExcelInvoices()" style="display: flex; align-items: center; gap: 6px;">
+              <span>📤</span> Upload Excel
+            </button>
+            <button class="btn btn-secondary" onclick="switchPanel('history')">⬅️ Sale Invoices</button>
+          </div>
         </div>
 
-        <div class="setup-table-wrapper">
-          <table class="setup-table">
+        <!-- Bulk Selection Action Toolbar -->
+        <div class="filters-card" style="background: var(--bg-card); border: 1px solid var(--border-color); padding: 14px 18px; border-radius: var(--radius-lg); margin-bottom: 20px; display: flex; justify-content: space-between; align-items: center; gap: 16px; flex-wrap: wrap; box-shadow: var(--shadow-sm);">
+          <div style="display: flex; align-items: center; gap: 14px; flex-wrap: wrap; flex: 1; min-width: 300px;">
+            <label style="display: flex; align-items: center; gap: 8px; font-weight: 600; font-size: 13px; cursor: pointer; color: var(--text-primary);">
+              <input type="checkbox" id="chk-drafts-select-all" onchange="toggleAllDraftsSelection(this)" style="width: 16px; height: 16px; cursor: pointer; accent-color: var(--accent-primary);">
+              <span>Select All</span>
+            </label>
+            <div style="width: 1px; height: 20px; background: var(--border-color);"></div>
+            <div id="drafts-selection-summary" style="font-size: 12.5px; color: var(--text-secondary); font-weight: 500;">
+              Selected: <strong id="drafts-selected-count" style="color: var(--accent-primary);">0</strong> / <span id="drafts-total-count">0</span> drafts | Total: <strong id="drafts-selected-total" style="color: var(--text-primary);">PKR 0.00</strong>
+            </div>
+          </div>
+          
+          <div style="display: flex; align-items: center; gap: 10px; flex-wrap: wrap;">
+            <input type="text" id="drafts-search-input" class="form-control" placeholder="Search buyer, NTN, ref no..." oninput="filterDraftsList()" style="width: 220px; height: 36px; font-size: 12px;">
+            <button class="btn btn-primary" id="btn-batch-post-drafts" onclick="startBatchPostSelectedDrafts()" style="display: flex; align-items: center; gap: 6px; font-weight: 600; height: 36px;">
+              <span>🚀</span> Post Selected to FBR (<span id="btn-batch-post-count">0</span>)
+            </button>
+            <button class="btn btn-danger" id="btn-batch-delete-drafts" onclick="batchDeleteSelectedDrafts()" style="display: flex; align-items: center; gap: 6px; height: 36px; font-size: 12px;">
+              <span>🗑️</span> Delete Selected
+            </button>
+          </div>
+        </div>
+
+        <div class="setup-table-wrapper" style="overflow-x: auto;">
+          <table class="setup-table" style="min-width: 980px;">
             <thead>
               <tr>
+                <th style="width: 40px; text-align: center;">
+                  <!-- Checkbox Column -->
+                </th>
                 <th>Draft Date</th>
                 <th>Reference No.</th>
                 <th>Buyer Name</th>
                 <th>Buyer NTN</th>
-                <th>Grand Total</th>
-                <th>Environment</th>
+                <th style="text-align: center;">Items</th>
+                <th style="text-align: right;">Subtotal Excl. ST</th>
+                <th style="text-align: right;">Sales Tax</th>
+                <th style="text-align: right;">Grand Total</th>
+                <th style="text-align: center;">Mode</th>
                 <th style="text-align: center;">Actions</th>
               </tr>
             </thead>
@@ -1335,12 +1370,12 @@
           <!-- Left Column: Customer Profile Form -->
           <div style="flex: 1.1; min-width: 0;">
             <div class="form-grid">
-              <div class="form-group col-3">
-                <label class="form-label" for="cust-id-display">Party #.</label>
-                <input class="form-control" type="text" id="cust-id-display" readonly disabled placeholder="Auto"
-                  style="border: 1px dashed var(--border-color); background-color: var(--bg-secondary); color: var(--text-muted);">
+              <div class="form-group col-4">
+                <label class="form-label" for="cust-custom-id">Customer Code</label>
+                <input class="form-control" type="text" id="cust-custom-id" placeholder="Auto Code (System Assigned)"
+                  title="Unique code for this customer. If left blank, it will automatically be assigned by the system on creation and can be updated later in future.">
               </div>
-              <div class="form-group col-9">
+              <div class="form-group col-8">
                 <label class="form-label" for="cust-name">Party Name *</label>
                 <input class="form-control" type="text" id="cust-name" placeholder="Party Name">
               </div>
@@ -1478,10 +1513,14 @@
       <div class="modal-body">
         <input type="hidden" id="item-id">
         <div class="form-grid">
-          <div class="form-group col-12">
+          <div class="form-group col-4">
+            <label class="form-label" for="item-custom-id">Product Code</label>
+            <input class="form-control" type="text" id="item-custom-id" placeholder="Auto Code (System Assigned)"
+              title="Unique code for this product. If left blank, it will automatically be assigned by the system on creation and can be updated later in future.">
+          </div>
+          <div class="form-group col-8">
             <label class="form-label" for="item-desc">Product Description *</label>
-            <textarea class="form-control" id="item-desc" placeholder="Product Details"
-              style="min-height: 60px; font-family: inherit; resize: vertical;"></textarea>
+            <input class="form-control" type="text" id="item-desc" placeholder="Product Details">
           </div>
           <div class="form-group col-6">
             <label class="form-label" for="item-hscode">HS Code *</label>
@@ -1827,7 +1866,7 @@
       </div>
       <div class="modal-body" style="padding: 20px;">
         <div style="text-align: center; margin-bottom: 20px;">
-          <h3 style="margin: 0 0 6px 0; color: var(--accent-primary);">FBR Invoicing Suite</h3>
+          <h3 style="margin: 0 0 6px 0; color: var(--accent-primary);">FBR Digital Invoicing</h3>
           <p style="margin: 0; font-size: 12px; color: var(--text-muted);">Log in with your activation credentials to
             activate this application.</p>
         </div>
@@ -1873,6 +1912,100 @@
             style="width: 100%; max-width: 280px; padding: 12px; font-weight: bold;">
             🔑 Activate License / Log In
           </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ==========================================
+       MODAL OVERLAY (BATCH POST TO FBR GATEWAY)
+       ========================================== -->
+  <div class="modal-overlay" id="batch-post-modal">
+    <div class="modal-card modal-large" style="max-width: 780px;">
+      <div class="modal-header">
+        <span class="modal-title" style="display: flex; align-items: center; gap: 8px;">
+          <span>🚀</span> Batch Gateway Posting Engine
+        </span>
+        <span id="batch-modal-env-badge" class="badge" style="background-color: var(--accent-primary); color: #fff; font-size: 11px; padding: 4px 10px; border-radius: var(--radius-sm); font-weight: 600;">
+          FBR Sandbox
+        </span>
+      </div>
+      <div class="modal-body" style="padding: 20px;">
+        <!-- Progress Bar -->
+        <div style="margin-bottom: 20px; background-color: var(--bg-card); padding: 16px; border-radius: var(--radius-lg); border: 1px solid var(--border-color);">
+          <div style="display: flex; justify-content: space-between; margin-bottom: 8px; font-size: 13px; font-weight: 600;">
+            <span id="batch-progress-status-text">Preparing invoices for batch declaration...</span>
+            <span id="batch-progress-percent">0%</span>
+          </div>
+          <div style="width: 100%; height: 10px; background-color: var(--bg-secondary); border-radius: 5px; overflow: hidden;">
+            <div id="batch-progress-bar" style="width: 0%; height: 100%; background: linear-gradient(90deg, var(--accent-primary) 0%, #10b981 100%); transition: width 0.2s;"></div>
+          </div>
+        </div>
+
+        <!-- Live Counters -->
+        <div class="dashboard-stats" style="grid-template-columns: repeat(4, 1fr); margin-bottom: 20px;">
+          <div class="stat-card" style="padding: 12px 16px;">
+            <div class="stat-card-icon" style="font-size: 18px;">📋</div>
+            <div class="stat-card-label" style="font-size: 11px;">Total Queue</div>
+            <div class="stat-card-value" id="batch-stat-total" style="font-size: 20px;">0</div>
+          </div>
+          <div class="stat-card" style="padding: 12px 16px;">
+            <div class="stat-card-icon" style="font-size: 18px; color: var(--success); background-color: var(--success-glow);">✅</div>
+            <div class="stat-card-label" style="font-size: 11px;">Successful</div>
+            <div class="stat-card-value" id="batch-stat-success" style="font-size: 20px; color: var(--success);">0</div>
+          </div>
+          <div class="stat-card" style="padding: 12px 16px;">
+            <div class="stat-card-icon" style="font-size: 18px; color: #ef4444; background-color: rgba(239, 68, 68, 0.08);">❌</div>
+            <div class="stat-card-label" style="font-size: 11px;">Failed / Errors</div>
+            <div class="stat-card-value" id="batch-stat-failed" style="font-size: 20px; color: #ef4444;">0</div>
+          </div>
+          <div class="stat-card" style="padding: 12px 16px;">
+            <div class="stat-card-icon" style="font-size: 18px; color: #60a5fa; background-color: rgba(96, 165, 250, 0.08);">⏳</div>
+            <div class="stat-card-label" style="font-size: 11px;">Remaining</div>
+            <div class="stat-card-value" id="batch-stat-remaining" style="font-size: 20px; color: #60a5fa;">0</div>
+          </div>
+        </div>
+
+        <!-- Real-Time Console Log Box -->
+        <div style="margin-bottom: 8px; display: flex; justify-content: space-between; align-items: center;">
+          <span style="font-size: 12px; font-weight: 700; text-transform: uppercase; color: var(--text-secondary);">Real-Time Gateway Transaction Log</span>
+          <span id="batch-log-counter" style="font-size: 11px; color: var(--text-muted);">0 transactions</span>
+        </div>
+        <div id="batch-post-log" style="height: 220px; overflow-y: auto; background-color: #0b0f19; border: 1px solid var(--border-color); border-radius: var(--radius-md); padding: 12px; font-family: 'Courier New', monospace; font-size: 11.5px; line-height: 1.5; color: #e2e8f0;">
+          <div style="color: #64748b;">Awaiting batch post execution...</div>
+        </div>
+      </div>
+      <div class="modal-footer" style="justify-content: space-between;">
+        <button class="btn btn-danger" id="btn-batch-stop" onclick="stopBatchPosting()" style="display: none;">
+          ⏹️ Stop Processing
+        </button>
+        <div></div>
+        <button class="btn btn-primary" id="btn-batch-close" onclick="closeBatchPostModal()" style="display: none;">
+          Done / Close
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ==========================================
+       MODAL OVERLAY (DRAFT INVOICE QUICK VIEW)
+       ========================================== -->
+  <div class="modal-overlay" id="draft-view-modal">
+    <div class="modal-card modal-large" style="max-width: 920px; width: 95%;">
+      <div class="modal-header">
+        <span class="modal-title" id="draft-view-title" style="display: flex; align-items: center; gap: 8px;">
+          <span>📄</span> Draft Invoice Preview
+        </span>
+        <button class="modal-close" onclick="closeDraftViewModal()">&times;</button>
+      </div>
+      <div class="modal-body" style="padding: 20px;" id="draft-view-content">
+        <!-- Dynamically rendered via JS -->
+      </div>
+      <div class="modal-footer" style="justify-content: space-between;">
+        <button class="btn btn-secondary" onclick="closeDraftViewModal()">Close</button>
+        <div style="display: flex; gap: 8px;">
+          <button class="btn btn-secondary" id="btn-draft-view-edit">✏️ Edit in Form</button>
+          <button class="btn btn-primary" id="btn-draft-view-post">🚀 Post to FBR Now</button>
         </div>
       </div>
     </div>

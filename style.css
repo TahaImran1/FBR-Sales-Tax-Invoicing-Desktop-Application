@@ -345,6 +345,62 @@ input, select, textarea, td, th, p, span, div, h1, h2, h3, h4, h5, h6, label, pr
 }
 
 /* ==========================================
+   COMPANY TRADEMARK WATERMARK (EVERY SCREEN)
+   ========================================== */
+.screen-watermark {
+  position: absolute;
+  bottom: 20px;
+  left: 50%;
+  transform: translateX(-50%);
+  pointer-events: none;
+  user-select: none;
+  z-index: 50;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  width: 260px;
+  max-width: 30vw;
+  opacity: 0.055;
+  transition: opacity var(--transition-normal);
+}
+
+.screen-watermark img {
+  width: 100%;
+  height: auto;
+  object-fit: contain;
+  display: block;
+}
+
+/* Dark themes (default): show white-text logo, hide dark-text logo */
+.screen-watermark .watermark-dark {
+  display: block;
+}
+.screen-watermark .watermark-light {
+  display: none;
+}
+
+/* Light themes: show dark-text logo, hide white-text logo */
+[data-theme="crystal-light"] .screen-watermark .watermark-dark,
+[data-theme="ice-breeze"] .screen-watermark .watermark-dark,
+[data-theme="mint-cream"] .screen-watermark .watermark-dark,
+[data-theme="sand-dune"] .screen-watermark .watermark-dark {
+  display: none;
+}
+
+[data-theme="crystal-light"] .screen-watermark .watermark-light,
+[data-theme="ice-breeze"] .screen-watermark .watermark-light,
+[data-theme="mint-cream"] .screen-watermark .watermark-light,
+[data-theme="sand-dune"] .screen-watermark .watermark-light {
+  display: block;
+}
+
+@media print {
+  .screen-watermark {
+    display: none !important;
+  }
+}
+
+/* ==========================================
    TYPOGRAPHY & HEADERS
    ========================================== */
 .panel-header {
@@ -436,7 +492,7 @@ input, select, textarea, td, th, p, span, div, h1, h2, h3, h4, h5, h6, label, pr
 /* Quick Actions & Recent Grid */
 .dashboard-grid {
   display: grid;
-  grid-template-columns: 2fr 1fr;
+  grid-template-columns: 1fr;
   gap: 24px;
 }
 
@@ -1954,4 +2010,28 @@ select.form-control {
   0% { transform: scale(1); }
   50% { transform: scale(1.05); text-shadow: 0 0 15px rgba(239, 68, 68, 0.4); }
   100% { transform: scale(1); }
+}
+
+/* ==========================================
+   BULK EXCEL & BATCH POSTING STYLES
+   ========================================== */
+.selected-row td {
+  background-color: rgba(99, 102, 241, 0.08) !important;
+}
+
+#batch-post-log::-webkit-scrollbar {
+  width: 6px;
+}
+
+#batch-post-log::-webkit-scrollbar-track {
+  background: rgba(0, 0, 0, 0.2);
+}
+
+#batch-post-log::-webkit-scrollbar-thumb {
+  background: var(--border-color);
+  border-radius: 3px;
+}
+
+#batch-post-log::-webkit-scrollbar-thumb:hover {
+  background: var(--text-muted);
 }

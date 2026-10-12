@@ -60,6 +60,27 @@ function hydrateRow(row) {
   }
   const result = { ...parsed, ...row };
   delete result.raw_data;
+
+  if (result.partyName !== undefined) {
+    // Customer record
+    const code = String(result.customerCode || result.customId || result.customBuyerId || (result.id ? `CUST-${String(result.id).padStart(3, '0')}` : '')).trim();
+    result.customerCode = code;
+    result.customId = code;
+    result.customBuyerId = code;
+  } else if (result.hsCode !== undefined || result.description !== undefined || result.itemDesc !== undefined) {
+    // Product record
+    const code = String(result.productCode || result.customId || result.customProductId || (result.id ? `PROD-${String(result.id).padStart(3, '0')}` : '')).trim();
+    result.productCode = code;
+    result.customId = code;
+    result.customProductId = code;
+  } else if (result.invoiceNumber !== undefined) {
+    // Invoice record
+    result.invoiceType = result.invoiceType || 'Sale Invoice';
+  } else {
+    if (!result.customId && result.id) {
+      result.customId = String(result.id);
+    }
+  }
   return result;
 }
 
@@ -143,6 +164,8 @@ async function initSQLite(customDbPath = null) {
       uom TEXT,
       rate REAL,
       saleType TEXT,
+      productCode TEXT,
+      customId TEXT,
       raw_data TEXT
     );
 
@@ -157,6 +180,8 @@ async function initSQLite(customDbPath = null) {
       address TEXT,
       registrationType TEXT,
       partyType TEXT,
+      customerCode TEXT,
+      customId TEXT,
       raw_data TEXT
     );
 
@@ -167,7 +192,7 @@ async function initSQLite(customDbPath = null) {
       invoiceNumber TEXT,
       invoiceRefNo TEXT,
       invoiceDate TEXT,
-      invoiceType TEXT,
+      invoiceType TEXT DEFAULT 'Sale Invoice',
       buyerNTN TEXT,
       buyerName TEXT,
       buyerAddress TEXT,
@@ -231,10 +256,91 @@ async function initSQLite(customDbPath = null) {
     CREATE INDEX IF NOT EXISTS idx_taxes_invoice_id ON invoice_taxes(invoiceId);
     CREATE INDEX IF NOT EXISTS idx_customers_ntn ON customers(ntn);
     CREATE INDEX IF NOT EXISTS idx_customers_company ON customers(companyId);
+    CREATE INDEX IF NOT EXISTS idx_customers_custom_id ON customers(customId);
     CREATE INDEX IF NOT EXISTS idx_items_code ON items(itemCode);
     CREATE INDEX IF NOT EXISTS idx_items_company ON items(companyId);
+    CREATE INDEX IF NOT EXISTS idx_items_custom_id ON items(customId);
     CREATE INDEX IF NOT EXISTS idx_taxes_company ON taxes(companyId);
   `);
+
+  // Schema evolution / migration checks for existing SQLite databases
+  try {
+    await exec(`ALTER TABLE items ADD COLUMN productCode TEXT;`);
+  } catch (e) {}
+  try {
+    await exec(`ALTER TABLE items ADD COLUMN customId TEXT;`);
+  } catch (e) {}
+  try {
+    await exec(`ALTER TABLE customers ADD COLUMN customerCode TEXT;`);
+  } catch (e) {}
+  try {
+    await exec(`ALTER TABLE customers ADD COLUMN customId TEXT;`);
+  } catch (e) {}
+
+  // Fill in any missing/null customer codes with guaranteed unique, non-null values
+  try {
+    const existingCustomers = await all('SELECT id, customerCode, customId, raw_data FROM customers');
+    const custTaken = new Set();
+    for (const c of existingCustomers) {
+      let code = (c.customerCode || c.customId || '').trim();
+      if (!code && c.raw_data) {
+        try {
+          const parsed = JSON.parse(c.raw_data);
+          code = (parsed.customerCode || parsed.customId || parsed.customBuyerId || '').trim();
+        } catch (err) {}
+      }
+      if (!code || custTaken.has(code.toLowerCase())) {
+        let n = c.id || 1;
+        while (custTaken.has(`cust-${String(n).padStart(3, '0')}`.toLowerCase())) {
+          n++;
+        }
+        code = `CUST-${String(n).padStart(3, '0')}`;
+      }
+      custTaken.add(code.toLowerCase());
+      await run('UPDATE customers SET customerCode = ?, customId = ? WHERE id = ?', [code, code, c.id]);
+    }
+  } catch (e) {}
+
+  // Fill in any missing/null product codes with guaranteed unique, non-null values
+  try {
+    const existingItems = await all('SELECT id, productCode, customId, raw_data FROM items');
+    const prodTaken = new Set();
+    for (const it of existingItems) {
+      let code = (it.productCode || it.customId || '').trim();
+      if (!code && it.raw_data) {
+        try {
+          const parsed = JSON.parse(it.raw_data);
+          code = (parsed.productCode || parsed.customId || parsed.customProductId || '').trim();
+        } catch (err) {}
+      }
+      if (!code || prodTaken.has(code.toLowerCase())) {
+        let n = it.id || 1;
+        while (prodTaken.has(`prod-${String(n).padStart(3, '0')}`.toLowerCase())) {
+          n++;
+        }
+        code = `PROD-${String(n).padStart(3, '0')}`;
+      }
+      prodTaken.add(code.toLowerCase());
+      await run('UPDATE items SET productCode = ?, customId = ? WHERE id = ?', [code, code, it.id]);
+    }
+  } catch (e) {}
+
+  // Enforce unique indexes for Customer Code and Product Code
+  try {
+    await exec(`CREATE UNIQUE INDEX IF NOT EXISTS idx_customers_customer_code ON customers(customerCode);`);
+  } catch (e) {
+    console.warn('[SQLite] Index note:', e.message);
+  }
+  try {
+    await exec(`CREATE UNIQUE INDEX IF NOT EXISTS idx_items_product_code ON items(productCode);`);
+  } catch (e) {
+    console.warn('[SQLite] Index note:', e.message);
+  }
+
+  // Ensure all existing invoices default to 'Sale Invoice'
+  try {
+    await exec(`UPDATE invoices SET invoiceType = 'Sale Invoice' WHERE invoiceType IS NULL OR invoiceType = '';`);
+  } catch (e) {}
 
   console.log('[SQLite Engine] Tables and indexes verified successfully.');
   return db;
@@ -374,9 +480,10 @@ async function executeZeroLossMigration(legacyBackup, backupDir) {
     // C. Products / Items
     for (const item of items) {
       const raw = JSON.stringify(item);
+      const codeVal = item.productCode || item.customId || item.customProductId || (item.id ? `PROD-${String(item.id).padStart(3, '0')}` : null);
       await run(`
-        INSERT INTO items (id, companyId, itemCode, description, hsCode, uom, rate, saleType, raw_data)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+        INSERT INTO items (id, companyId, itemCode, description, hsCode, uom, rate, saleType, productCode, customId, raw_data)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
       `, [
         item.id,
         item.companyId || 1,
@@ -386,6 +493,8 @@ async function executeZeroLossMigration(legacyBackup, backupDir) {
         item.uom || '',
         Number(item.rate) || 0,
         item.saleType || '',
+        codeVal,
+        codeVal,
         raw
       ]);
     }
@@ -393,9 +502,10 @@ async function executeZeroLossMigration(legacyBackup, backupDir) {
     // D. Customers
     for (const cust of customers) {
       const raw = JSON.stringify(cust);
+      const codeVal = cust.customerCode || cust.customId || cust.customBuyerId || (cust.id ? `CUST-${String(cust.id).padStart(3, '0')}` : null);
       await run(`
-        INSERT INTO customers (id, companyId, partyName, ntn, cnic, province, address, registrationType, partyType, raw_data)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        INSERT INTO customers (id, companyId, partyName, ntn, cnic, province, address, registrationType, partyType, customerCode, customId, raw_data)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
       `, [
         cust.id,
         cust.companyId || 1,
@@ -406,6 +516,8 @@ async function executeZeroLossMigration(legacyBackup, backupDir) {
         cust.address || '',
         cust.registrationType || '',
         cust.partyType || 'LOCAL',
+        codeVal,
+        codeVal,
         raw
       ]);
     }
@@ -426,7 +538,7 @@ async function executeZeroLossMigration(legacyBackup, backupDir) {
         inv.invoiceNumber || '',
         inv.invoiceRefNo || '',
         inv.invoiceDate || '',
-        inv.invoiceType || '',
+        inv.invoiceType || 'Sale Invoice',
         inv.buyerNTN || '',
         inv.buyerName || '',
         inv.buyerAddress || '',
@@ -679,6 +791,73 @@ async function dbDeleteTax(id) {
   await run('DELETE FROM taxes WHERE id = ?', [Number(id)]);
 }
 
+// --- Unique Code Generators (Guaranteed NOT NULL & UNIQUE) ---
+async function getNextUniqueCustomerCode(preferredCandidate = null) {
+  await initSQLite();
+  if (preferredCandidate && String(preferredCandidate).trim()) {
+    const cand = String(preferredCandidate).trim();
+    const existing = await get(
+      `SELECT id FROM customers WHERE LOWER(customerCode) = LOWER(?) OR LOWER(customId) = LOWER(?)`,
+      [cand, cand]
+    );
+    if (!existing) return cand;
+  }
+  const rows = await all(`SELECT customerCode, customId FROM customers`);
+  const taken = new Set();
+  let maxNum = 0;
+  rows.forEach(r => {
+    [r.customerCode, r.customId].forEach(val => {
+      if (val && String(val).trim()) {
+        const str = String(val).trim();
+        taken.add(str.toLowerCase());
+        const m = str.match(/^CUST-(\d+)$/i);
+        if (m) {
+          const num = parseInt(m[1], 10);
+          if (num > maxNum) maxNum = num;
+        }
+      }
+    });
+  });
+  let nextNum = maxNum + 1;
+  while (taken.has(`cust-${String(nextNum).padStart(3, '0')}`.toLowerCase())) {
+    nextNum++;
+  }
+  return `CUST-${String(nextNum).padStart(3, '0')}`;
+}
+
+async function getNextUniqueProductCode(preferredCandidate = null) {
+  await initSQLite();
+  if (preferredCandidate && String(preferredCandidate).trim()) {
+    const cand = String(preferredCandidate).trim();
+    const existing = await get(
+      `SELECT id FROM items WHERE LOWER(productCode) = LOWER(?) OR LOWER(customId) = LOWER(?)`,
+      [cand, cand]
+    );
+    if (!existing) return cand;
+  }
+  const rows = await all(`SELECT productCode, customId FROM items`);
+  const taken = new Set();
+  let maxNum = 0;
+  rows.forEach(r => {
+    [r.productCode, r.customId].forEach(val => {
+      if (val && String(val).trim()) {
+        const str = String(val).trim();
+        taken.add(str.toLowerCase());
+        const m = str.match(/^PROD-(\d+)$/i);
+        if (m) {
+          const num = parseInt(m[1], 10);
+          if (num > maxNum) maxNum = num;
+        }
+      }
+    });
+  });
+  let nextNum = maxNum + 1;
+  while (taken.has(`prod-${String(nextNum).padStart(3, '0')}`.toLowerCase())) {
+    nextNum++;
+  }
+  return `PROD-${String(nextNum).padStart(3, '0')}`;
+}
+
 // --- Items ---
 async function dbGetItems() {
   await initSQLite();
@@ -688,38 +867,67 @@ async function dbGetItems() {
 
 async function dbAddItem(item) {
   await initSQLite();
-  const raw = JSON.stringify(item);
+  let finalCode = (item.productCode || item.customId || item.customProductId || '').trim();
+
   if (item.id) {
+    if (!finalCode) {
+      finalCode = await getNextUniqueProductCode(`PROD-${String(item.id).padStart(3, '0')}`);
+    }
+    item.productCode = finalCode;
+    item.customId = finalCode;
+    item.customProductId = finalCode;
+    if (!item.itemCode) item.itemCode = finalCode;
+    const raw = JSON.stringify(item);
     await run(`
-      INSERT OR REPLACE INTO items (id, companyId, itemCode, description, hsCode, uom, rate, saleType, raw_data)
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+      INSERT OR REPLACE INTO items (id, companyId, itemCode, description, hsCode, uom, rate, saleType, productCode, customId, raw_data)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `, [
       Number(item.id),
       item.companyId || 1,
       item.itemCode || '',
-      item.description || '',
+      item.description || item.itemDesc || '',
       item.hsCode || '',
       item.uom || '',
       Number(item.rate) || 0,
       item.saleType || '',
+      finalCode,
+      finalCode,
       raw
     ]);
     return item.id;
   } else {
+    if (!finalCode) {
+      finalCode = await getNextUniqueProductCode();
+    }
+    item.productCode = finalCode;
+    item.customId = finalCode;
+    item.customProductId = finalCode;
+    if (!item.itemCode) item.itemCode = finalCode;
+    const raw = JSON.stringify(item);
     const res = await run(`
-      INSERT INTO items (companyId, itemCode, description, hsCode, uom, rate, saleType, raw_data)
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+      INSERT INTO items (companyId, itemCode, description, hsCode, uom, rate, saleType, productCode, customId, raw_data)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `, [
       item.companyId || 1,
       item.itemCode || '',
-      item.description || '',
+      item.description || item.itemDesc || '',
       item.hsCode || '',
       item.uom || '',
       Number(item.rate) || 0,
       item.saleType || '',
+      finalCode,
+      finalCode,
       raw
     ]);
     item.id = res.lastID;
+    const updatedRaw = JSON.stringify(item);
+    await run(`UPDATE items SET productCode = ?, customId = ?, itemCode = ?, raw_data = ? WHERE id = ?`, [
+      finalCode,
+      finalCode,
+      item.itemCode,
+      updatedRaw,
+      res.lastID
+    ]);
     return res.lastID;
   }
 }
@@ -738,11 +946,19 @@ async function dbGetCustomers() {
 
 async function dbAddCustomer(cust) {
   await initSQLite();
-  const raw = JSON.stringify(cust);
+  let finalCode = (cust.customerCode || cust.customId || cust.customBuyerId || '').trim();
+
   if (cust.id) {
+    if (!finalCode) {
+      finalCode = await getNextUniqueCustomerCode(`CUST-${String(cust.id).padStart(3, '0')}`);
+    }
+    cust.customerCode = finalCode;
+    cust.customId = finalCode;
+    cust.customBuyerId = finalCode;
+    const raw = JSON.stringify(cust);
     await run(`
-      INSERT OR REPLACE INTO customers (id, companyId, partyName, ntn, cnic, province, address, registrationType, partyType, raw_data)
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      INSERT OR REPLACE INTO customers (id, companyId, partyName, ntn, cnic, province, address, registrationType, partyType, customerCode, customId, raw_data)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `, [
       Number(cust.id),
       cust.companyId || 1,
@@ -753,13 +969,22 @@ async function dbAddCustomer(cust) {
       cust.address || '',
       cust.registrationType || '',
       cust.partyType || 'LOCAL',
+      finalCode,
+      finalCode,
       raw
     ]);
     return cust.id;
   } else {
+    if (!finalCode) {
+      finalCode = await getNextUniqueCustomerCode();
+    }
+    cust.customerCode = finalCode;
+    cust.customId = finalCode;
+    cust.customBuyerId = finalCode;
+    const raw = JSON.stringify(cust);
     const res = await run(`
-      INSERT INTO customers (companyId, partyName, ntn, cnic, province, address, registrationType, partyType, raw_data)
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+      INSERT INTO customers (companyId, partyName, ntn, cnic, province, address, registrationType, partyType, customerCode, customId, raw_data)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `, [
       cust.companyId || 1,
       cust.partyName || '',
@@ -769,9 +994,18 @@ async function dbAddCustomer(cust) {
       cust.address || '',
       cust.registrationType || '',
       cust.partyType || 'LOCAL',
+      finalCode,
+      finalCode,
       raw
     ]);
     cust.id = res.lastID;
+    const updatedRaw = JSON.stringify(cust);
+    await run(`UPDATE customers SET customerCode = ?, customId = ?, raw_data = ? WHERE id = ?`, [
+      finalCode,
+      finalCode,
+      updatedRaw,
+      res.lastID
+    ]);
     return res.lastID;
   }
 }
@@ -804,7 +1038,7 @@ async function dbSaveInvoice(invoiceMaster, itemsList = [], taxesList = []) {
         invoiceMaster.invoiceNumber || '',
         invoiceMaster.invoiceRefNo || '',
         invoiceMaster.invoiceDate || '',
-        invoiceMaster.invoiceType || '',
+        invoiceMaster.invoiceType || 'Sale Invoice',
         invoiceMaster.buyerNTN || '',
         invoiceMaster.buyerName || '',
         invoiceMaster.buyerAddress || '',
@@ -840,7 +1074,7 @@ async function dbSaveInvoice(invoiceMaster, itemsList = [], taxesList = []) {
         invoiceMaster.invoiceNumber || '',
         invoiceMaster.invoiceRefNo || '',
         invoiceMaster.invoiceDate || '',
-        invoiceMaster.invoiceType || '',
+        invoiceMaster.invoiceType || 'Sale Invoice',
         invoiceMaster.buyerNTN || '',
         invoiceMaster.buyerName || '',
         invoiceMaster.buyerAddress || '',
@@ -912,7 +1146,13 @@ async function dbSaveInvoice(invoiceMaster, itemsList = [], taxesList = []) {
 
 async function dbGetInvoices() {
   await initSQLite();
-  const rows = await all('SELECT * FROM invoices ORDER BY id DESC');
+  const rows = await all(`
+    SELECT i.*, COUNT(d.id) as itemCount
+    FROM invoices i
+    LEFT JOIN invoice_details d ON i.id = d.invoiceId
+    GROUP BY i.id
+    ORDER BY i.id DESC
+  `);
   return rows.map(hydrateRow);
 }
 
@@ -1030,7 +1270,7 @@ async function dbImportBackup(backup) {
         inv.invoiceNumber || '',
         inv.invoiceRefNo || '',
         inv.invoiceDate || '',
-        inv.invoiceType || '',
+        inv.invoiceType || 'Sale Invoice',
         inv.buyerNTN || '',
         inv.buyerName || '',
         inv.buyerAddress || '',
@@ -1120,5 +1360,7 @@ module.exports = {
   dbGetInvoiceFull,
   dbDeleteInvoice,
   dbExportBackup,
-  dbImportBackup
+  dbImportBackup,
+  getNextUniqueCustomerCode,
+  getNextUniqueProductCode
 };

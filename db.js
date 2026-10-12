@@ -105,6 +105,10 @@ function dbDeleteItem(id) {
   });
 }
 
+function dbGetNextProductCode() {
+  return getSqliteApi().getNextProductCode();
+}
+
 // --- Customers ---
 function dbGetCustomers() {
   return getSqliteApi().getCustomers();
@@ -122,6 +126,10 @@ function dbDeleteCustomer(id) {
     triggerAutoBackup();
     return res;
   });
+}
+
+function dbGetNextCustomerCode() {
+  return getSqliteApi().getNextCustomerCode();
 }
 
 // --- Invoices ---

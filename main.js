@@ -3,9 +3,11 @@ const { autoUpdater } = require('electron-updater');
 const path = require('node:path');
 const fs = require('node:fs');
 const sqliteDb = require('./sqlite-db.js');
+const excelService = require('./excel-service.js');
 
 // Ensure permanent, locked application name and AppData directory across all builds, updates & reinstalls
 app.setName('fbr-invoicing-app');
+app.setPath('userData', path.join(app.getPath('appData'), 'fbr-invoicing-app'));
 
 let mainWindow;
 
@@ -90,7 +92,7 @@ function createWindow() {
     height: 850,
     minWidth: 1024,
     minHeight: 768,
-    title: "FBR Digital Invoicing Suite 2026",
+    title: "FBR Digital Invoicing 2026",
     backgroundColor: '#0b0f19', // Slate-dark background to match dark mode and prevent flash
     show: false, // Show once ready-to-show to prevent laggy rendering
     webPreferences: {
@@ -1022,9 +1024,11 @@ ipcMain.handle('sqlite-delete-tax', async (event, id) => sqliteDb.dbDeleteTax(id
 ipcMain.handle('sqlite-get-items', async () => sqliteDb.dbGetItems());
 ipcMain.handle('sqlite-add-item', async (event, item) => sqliteDb.dbAddItem(item));
 ipcMain.handle('sqlite-delete-item', async (event, id) => sqliteDb.dbDeleteItem(id));
+ipcMain.handle('sqlite-get-next-product-code', async () => sqliteDb.getNextUniqueProductCode());
 ipcMain.handle('sqlite-get-customers', async () => sqliteDb.dbGetCustomers());
 ipcMain.handle('sqlite-add-customer', async (event, cust) => sqliteDb.dbAddCustomer(cust));
 ipcMain.handle('sqlite-delete-customer', async (event, id) => sqliteDb.dbDeleteCustomer(id));
+ipcMain.handle('sqlite-get-next-customer-code', async () => sqliteDb.getNextUniqueCustomerCode());
 ipcMain.handle('sqlite-save-invoice', async (event, master, items, taxes) => sqliteDb.dbSaveInvoice(master, items, taxes));
 ipcMain.handle('sqlite-get-invoices', async () => sqliteDb.dbGetInvoices());
 ipcMain.handle('sqlite-get-invoice-full', async (event, id) => sqliteDb.dbGetInvoiceFull(id));
@@ -1034,6 +1038,84 @@ ipcMain.handle('sqlite-import-backup', async (event, backup) => sqliteDb.dbImpor
 ipcMain.handle('sqlite-migrate-from-legacy', async (event, legacyBackup) => {
   const backupDir = getDatabaseBackupDir();
   return sqliteDb.executeZeroLossMigration(legacyBackup, backupDir);
+});
+
+// Persistent License Session Cache Handlers
+ipcMain.handle('save-license-cache', async (event, licenseData) => {
+  try {
+    const file = path.join(app.getPath('userData'), 'license_session.json');
+    if (!licenseData) {
+      if (fs.existsSync(file)) fs.unlinkSync(file);
+      return true;
+    }
+    fs.writeFileSync(file, JSON.stringify(licenseData, null, 2), 'utf8');
+    return true;
+  } catch (err) {
+    console.error('Failed to save license cache:', err);
+    return false;
+  }
+});
+
+ipcMain.handle('get-license-cache', async () => {
+  try {
+    const file = path.join(app.getPath('userData'), 'license_session.json');
+    if (fs.existsSync(file)) {
+      return JSON.parse(fs.readFileSync(file, 'utf8'));
+    }
+  } catch (err) {
+    console.error('Failed to read license cache:', err);
+  }
+  return null;
+});
+
+// Bulk Excel Operations: Download Template & Import Drafts
+ipcMain.handle('excel-download-template', async (event, args) => {
+  try {
+    const companyId = (args && args.companyId) || 1;
+    const downloadsFolder = app.getPath('downloads');
+    const defaultPath = path.join(downloadsFolder, 'FBR_Invoice_Import_Template.xlsx');
+    const { canceled, filePath } = await dialog.showSaveDialog(mainWindow, {
+      title: 'Save FBR Bulk Invoice Excel Template',
+      defaultPath: defaultPath,
+      filters: [
+        { name: 'Excel Workbook (*.xlsx)', extensions: ['xlsx'] }
+      ]
+    });
+
+    if (canceled || !filePath) {
+      return { canceled: true };
+    }
+
+    const buffer = await excelService.generateInvoiceTemplateBuffer(companyId);
+    fs.writeFileSync(filePath, buffer);
+    return { success: true, filePath };
+  } catch (err) {
+    console.error('Error saving Excel template:', err);
+    return { success: false, error: err.message };
+  }
+});
+
+ipcMain.handle('excel-import-drafts', async (event, { companyId, fbrEnvMode }) => {
+  try {
+    const { canceled, filePaths } = await dialog.showOpenDialog(mainWindow, {
+      title: 'Select Excel File with Invoices to Draft',
+      filters: [
+        { name: 'Spreadsheet Files (*.xlsx, *.xls, *.csv)', extensions: ['xlsx', 'xls', 'csv'] }
+      ],
+      properties: ['openFile']
+    });
+
+    if (canceled || !filePaths || filePaths.length === 0) {
+      return { canceled: true };
+    }
+
+    const filePath = filePaths[0];
+    const result = await excelService.parseAndDraftExcelInvoices(filePath, companyId, fbrEnvMode);
+    return { ...result, filePath };
+  } catch (err) {
+    console.error('Error importing Excel invoices:', err);
+    return { success: false, error: err.message };
+  }
 });
 
 function getFormat2TemplateContent() {

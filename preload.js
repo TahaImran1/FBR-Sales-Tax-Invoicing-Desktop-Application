@@ -35,6 +35,16 @@ contextBridge.exposeInMainWorld('api', {
   getAutoBackup: () => ipcRenderer.invoke('get-auto-backup'),
   getAutoBackupInfo: () => ipcRenderer.invoke('get-auto-backup-info'),
 
+  // Persistent License Session Cache
+  saveLicenseCache: (licenseData) => ipcRenderer.invoke('save-license-cache', licenseData),
+  getLicenseCache: () => ipcRenderer.invoke('get-license-cache'),
+
+  // Bulk Excel Import & Template Engine
+  excel: {
+    downloadTemplate: (companyId) => ipcRenderer.invoke('excel-download-template', { companyId }),
+    importDrafts: (companyId, fbrEnvMode) => ipcRenderer.invoke('excel-import-drafts', { companyId, fbrEnvMode })
+  },
+
   // Native SQLite High-Throughput Relational Database Engine
   sqlite: {
     getAllCompanies: () => ipcRenderer.invoke('sqlite-get-all-companies'),
@@ -47,9 +57,11 @@ contextBridge.exposeInMainWorld('api', {
     getItems: () => ipcRenderer.invoke('sqlite-get-items'),
     addItem: (item) => ipcRenderer.invoke('sqlite-add-item', item),
     deleteItem: (id) => ipcRenderer.invoke('sqlite-delete-item', id),
+    getNextProductCode: () => ipcRenderer.invoke('sqlite-get-next-product-code'),
     getCustomers: () => ipcRenderer.invoke('sqlite-get-customers'),
     addCustomer: (cust) => ipcRenderer.invoke('sqlite-add-customer', cust),
     deleteCustomer: (id) => ipcRenderer.invoke('sqlite-delete-customer', id),
+    getNextCustomerCode: () => ipcRenderer.invoke('sqlite-get-next-customer-code'),
     saveInvoice: (master, items, taxes) => ipcRenderer.invoke('sqlite-save-invoice', master, items, taxes),
     getInvoices: () => ipcRenderer.invoke('sqlite-get-invoices'),
     getInvoiceFull: (id) => ipcRenderer.invoke('sqlite-get-invoice-full', id),
