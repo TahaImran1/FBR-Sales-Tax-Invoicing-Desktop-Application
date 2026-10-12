@@ -38,6 +38,7 @@ contextBridge.exposeInMainWorld('api', {
   // Persistent License Session Cache
   saveLicenseCache: (licenseData) => ipcRenderer.invoke('save-license-cache', licenseData),
   getLicenseCache: () => ipcRenderer.invoke('get-license-cache'),
+  getMachineId: () => ipcRenderer.invoke('get-machine-id'),
 
   // Bulk Excel Import & Template Engine
   excel: {

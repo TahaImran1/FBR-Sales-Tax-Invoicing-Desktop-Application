@@ -2,6 +2,8 @@ const { app, BrowserWindow, ipcMain, dialog, Menu, MenuItem } = require('electro
 const { autoUpdater } = require('electron-updater');
 const path = require('node:path');
 const fs = require('node:fs');
+const crypto = require('node:crypto');
+const { execSync } = require('node:child_process');
 const sqliteDb = require('./sqlite-db.js');
 const excelService = require('./excel-service.js');
 
@@ -1040,7 +1042,106 @@ ipcMain.handle('sqlite-migrate-from-legacy', async (event, legacyBackup) => {
   return sqliteDb.executeZeroLossMigration(legacyBackup, backupDir);
 });
 
-// Persistent License Session Cache Handlers
+// ==========================================================
+// HARDWARE FINGERPRINTING & ANTI-TAMPER LICENSE SECURITY ENGINE
+// ==========================================================
+const LICENSE_PEPPER = 'FBR_PK_COMPLIANCE_2026_ANTI_TAMPER_KEY_#987123$!';
+
+function getMachineFingerprint() {
+  try {
+    if (process.platform === 'win32') {
+      const output = execSync('reg query HKLM\\SOFTWARE\\Microsoft\\Cryptography /v MachineGuid', { encoding: 'utf8', windowsHide: true });
+      const match = output.match(/MachineGuid\s+REG_SZ\s+([A-Fa-f0-9-]+)/i);
+      if (match && match[1]) {
+        return crypto.createHash('sha256').update('FBR_HW_' + match[1].trim()).digest('hex');
+      }
+    }
+  } catch (err) {}
+  try {
+    const os = require('node:os');
+    const net = os.networkInterfaces();
+    let mac = '';
+    for (const name of Object.keys(net)) {
+      for (const netObj of net[name]) {
+        if (!netObj.internal && netObj.mac && netObj.mac !== '00:00:00:00:00:00') {
+          mac = netObj.mac;
+          break;
+        }
+      }
+      if (mac) break;
+    }
+    const raw = (mac || 'unknown') + '_' + os.hostname() + '_' + os.arch() + '_' + os.platform();
+    return crypto.createHash('sha256').update('FBR_HW_' + raw).digest('hex');
+  } catch (e) {
+    return 'generic_device_id';
+  }
+}
+
+function getDerivedKey(machineId) {
+  return crypto.scryptSync(machineId, LICENSE_PEPPER, 32);
+}
+
+function computeLicenseSeal(email, token, cachedExpiry, cachedActive, machineId) {
+  const data = [
+    String(email || '').trim().toLowerCase(),
+    String(token || '').trim(),
+    String(cachedExpiry || '').trim(),
+    String(cachedActive === true || cachedActive === 'true'),
+    String(machineId || '').trim()
+  ].join('|:::|');
+  return crypto.createHmac('sha256', LICENSE_PEPPER).update(data).digest('hex');
+}
+
+function encryptLicenseSession(payload, machineId) {
+  const seal = computeLicenseSeal(payload.email, payload.token, payload.cachedExpiry, payload.cachedActive, machineId);
+  const fullObj = {
+    email: payload.email,
+    token: payload.token,
+    cachedActive: payload.cachedActive === true || payload.cachedActive === 'true',
+    cachedExpiry: payload.cachedExpiry || '',
+    machineId: machineId,
+    seal: seal
+  };
+  const key = getDerivedKey(machineId);
+  const iv = crypto.randomBytes(12);
+  const cipher = crypto.createCipheriv('aes-256-gcm', key, iv);
+  let encrypted = cipher.update(JSON.stringify(fullObj), 'utf8', 'hex');
+  encrypted += cipher.final('hex');
+  const tag = cipher.getAuthTag().toString('hex');
+  return JSON.stringify({
+    v: 1,
+    iv: iv.toString('hex'),
+    tag: tag,
+    data: encrypted
+  }, null, 2);
+}
+
+function decryptLicenseSession(parsed, currentMachineId) {
+  try {
+    if (!parsed || !parsed.iv || !parsed.tag || !parsed.data) {
+      return { valid: false, reason: 'missing_crypto_fields' };
+    }
+    const key = getDerivedKey(currentMachineId);
+    const decipher = crypto.createDecipheriv('aes-256-gcm', key, Buffer.from(parsed.iv, 'hex'));
+    decipher.setAuthTag(Buffer.from(parsed.tag, 'hex'));
+    let decrypted = decipher.update(parsed.data, 'hex', 'utf8');
+    decrypted += decipher.final('utf8');
+    const obj = JSON.parse(decrypted);
+
+    if (obj.machineId !== currentMachineId) {
+      return { valid: false, reason: 'unauthorized_machine_transfer' };
+    }
+    const expectedSeal = computeLicenseSeal(obj.email, obj.token, obj.cachedExpiry, obj.cachedActive, currentMachineId);
+    if (obj.seal !== expectedSeal) {
+      return { valid: false, reason: 'tampered_license_seal' };
+    }
+    return { valid: true, data: obj };
+  } catch (err) {
+    return { valid: false, reason: 'decryption_or_auth_failed: ' + err.message };
+  }
+}
+
+// Persistent License Session Cache Handlers (Hardware-Bound & Tamper-Sealed)
 ipcMain.handle('save-license-cache', async (event, licenseData) => {
   try {
     const file = path.join(app.getPath('userData'), 'license_session.json');
@@ -1048,10 +1149,12 @@ ipcMain.handle('save-license-cache', async (event, licenseData) => {
       if (fs.existsSync(file)) fs.unlinkSync(file);
       return true;
     }
-    fs.writeFileSync(file, JSON.stringify(licenseData, null, 2), 'utf8');
+    const machineId = getMachineFingerprint();
+    const encryptedContent = encryptLicenseSession(licenseData, machineId);
+    fs.writeFileSync(file, encryptedContent, 'utf8');
     return true;
   } catch (err) {
-    console.error('Failed to save license cache:', err);
+    console.error('[License Security] Failed to save encrypted license cache:', err);
     return false;
   }
 });
@@ -1059,14 +1162,57 @@ ipcMain.handle('save-license-cache', async (event, licenseData) => {
 ipcMain.handle('get-license-cache', async () => {
   try {
     const file = path.join(app.getPath('userData'), 'license_session.json');
-    if (fs.existsSync(file)) {
-      return JSON.parse(fs.readFileSync(file, 'utf8'));
+    if (!fs.existsSync(file)) {
+      return null;
     }
+
+    const machineId = getMachineFingerprint();
+    let rawContent = fs.readFileSync(file, 'utf8');
+    let parsed = null;
+    try {
+      parsed = JSON.parse(rawContent);
+    } catch (e) {
+      console.warn('[License Security] Corrupted session file detected. Unlinking and terminating session.');
+      try { fs.unlinkSync(file); } catch (uErr) {}
+      return { valid: false, tampered: true, reason: 'corrupted_json' };
+    }
+
+    // New format: authenticated AES-256-GCM + hardware machine ID + HMAC seal
+    if (parsed && parsed.v === 1 && parsed.iv && parsed.tag && parsed.data) {
+      const decResult = decryptLicenseSession(parsed, machineId);
+      if (!decResult.valid) {
+        console.warn(`[License Security] VIOLATION: ${decResult.reason}. Deleting session and locking app.`);
+        try { fs.unlinkSync(file); } catch (uErr) {}
+        return { valid: false, tampered: true, reason: decResult.reason };
+      }
+      return { valid: true, ...decResult.data };
+    }
+
+    // Legacy migration: automatically upgrade unencrypted session to hardware-locked on this PC
+    if (parsed && parsed.email && parsed.token && !parsed.v) {
+      console.log('[License Security] Migrating legacy plain session to hardware-bound encrypted format');
+      const migrated = {
+        token: parsed.token,
+        email: parsed.email,
+        cachedActive: parsed.cachedActive === true || parsed.cachedActive === 'true',
+        cachedExpiry: parsed.cachedExpiry || ''
+      };
+      const encryptedContent = encryptLicenseSession(migrated, machineId);
+      fs.writeFileSync(file, encryptedContent, 'utf8');
+      return { valid: true, ...migrated };
+    }
+
+    // Unrecognized or tampered structure
+    console.warn('[License Security] Unrecognized session structure. Purging session.');
+    try { fs.unlinkSync(file); } catch (uErr) {}
+    return { valid: false, tampered: true, reason: 'unrecognized_structure' };
   } catch (err) {
-    console.error('Failed to read license cache:', err);
+    console.error('[License Security] Failed to read license cache:', err);
+    return { valid: false, tampered: true, reason: err.message };
   }
-  return null;
 });
+
+ipcMain.handle('get-machine-id', async () => getMachineFingerprint());
 
 // Bulk Excel Operations: Download Template & Import Drafts
 ipcMain.handle('excel-download-template', async (event, args) => {

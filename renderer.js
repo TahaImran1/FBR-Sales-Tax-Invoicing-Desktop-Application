@@ -118,7 +118,8 @@ async function supabaseFetch(endpoint, method = 'GET', body = null, token = null
   const url = `${SUPABASE_URL}${endpoint}`;
   const headers = {
     'apikey': SUPABASE_ANON_KEY,
-    'Content-Type': 'application/json'
+    'Content-Type': 'application/json',
+    'Prefer': 'return=representation'
   };
   if (token) {
     headers['Authorization'] = `Bearer ${token}`;
@@ -137,7 +138,16 @@ async function supabaseFetch(endpoint, method = 'GET', body = null, token = null
     const errText = await response.text();
     throw new Error(errText || `HTTP Error ${response.status}`);
   }
-  return await response.json();
+
+  const text = await response.text();
+  if (!text || text.trim() === '') {
+    return null;
+  }
+  try {
+    return JSON.parse(text);
+  } catch (e) {
+    return text;
+  }
 }
 
 async function loginLicenseUser(email, password) {
@@ -173,28 +183,6 @@ async function fetchLicenseProfile(token, userId) {
 }
 
 async function checkLicenseStatus() {
-  // If localStorage is empty, automatically recover from persistent license storage
-  if (!localStorage.getItem('license_email') && window.api && window.api.getLicenseCache) {
-    try {
-      const diskCache = await window.api.getLicenseCache();
-      if (diskCache && diskCache.email && diskCache.token) {
-        console.log("Restoring license credentials from persistent storage for:", diskCache.email);
-        localStorage.setItem('license_token', diskCache.token);
-        localStorage.setItem('license_email', diskCache.email);
-        localStorage.setItem('license_cached_active', (diskCache.cachedActive === true || diskCache.cachedActive === 'true').toString());
-        localStorage.setItem('license_cached_expiry', diskCache.cachedExpiry || '');
-      }
-    } catch (cacheErr) {
-      console.warn("Could not retrieve persistent license cache:", cacheErr);
-    }
-  }
-
-  console.log("checkLicenseStatus() checking local license state. Email:", localStorage.getItem('license_email'));
-  const email = localStorage.getItem('license_email');
-  const token = localStorage.getItem('license_token');
-  const cachedExpiry = localStorage.getItem('license_cached_expiry');
-  const cachedActive = localStorage.getItem('license_cached_active') === 'true';
-
   const lockOverlay = document.getElementById('license-lock-overlay');
   const lockMessage = document.getElementById('license-lock-message');
 
@@ -229,7 +217,56 @@ async function checkLicenseStatus() {
     return true;
   }
 
-  // 1. Auth credentials check
+  // 1. Fetch hardware-bound, cryptographically verified session from disk
+  let diskSession = null;
+  if (window.api && window.api.getLicenseCache) {
+    try {
+      diskSession = await window.api.getLicenseCache();
+    } catch (cacheErr) {
+      console.warn("[License Security] Could not retrieve persistent license cache:", cacheErr);
+    }
+  }
+
+  // 2. Anti-Tamper & Anti-Transfer Violation Check
+  if (diskSession && diskSession.tampered) {
+    console.warn("[License Security] TAMPERING DETECTED! Reason:", diskSession.reason);
+    // Instant security auto-logout: wipe all renderer storage
+    localStorage.removeItem('license_token');
+    localStorage.removeItem('license_email');
+    localStorage.removeItem('license_cached_active');
+    localStorage.removeItem('license_cached_expiry');
+
+    if (lockOverlay) {
+      lockOverlay.style.display = 'flex';
+      if (lockMessage) {
+        lockMessage.innerHTML = '⚠️ <strong style="color: #ef4444;">Security Alert:</strong> License file tampering or unauthorized device transfer detected. Your session has been terminated for security. Please log in with your credentials to activate this computer.';
+      }
+    }
+    updateSettingsFields('', 'SECURITY VIOLATION (TAMPERED)', '', false);
+    return false;
+  }
+
+  // 3. Synchronize verified state: If diskSession exists and is valid
+  if (diskSession && diskSession.valid) {
+    // If a user attempted to manipulate localStorage values, override them with authentic signed values
+    localStorage.setItem('license_token', diskSession.token);
+    localStorage.setItem('license_email', diskSession.email);
+    localStorage.setItem('license_cached_active', (diskSession.cachedActive === true || diskSession.cachedActive === 'true').toString());
+    localStorage.setItem('license_cached_expiry', diskSession.cachedExpiry || '');
+  } else if (!diskSession) {
+    // If file was deleted on disk, clear localStorage to prevent bypass
+    localStorage.removeItem('license_token');
+    localStorage.removeItem('license_email');
+    localStorage.removeItem('license_cached_active');
+    localStorage.removeItem('license_cached_expiry');
+  }
+
+  const email = localStorage.getItem('license_email');
+  const token = localStorage.getItem('license_token');
+  const cachedExpiry = localStorage.getItem('license_cached_expiry');
+  const cachedActive = localStorage.getItem('license_cached_active') === 'true';
+
+  // 4. Auth credentials check
   if (!email || !token || !cachedExpiry) {
     console.log("checkLicenseStatus() credentials missing. Showing lockOverlay.");
     if (lockOverlay) {
@@ -242,7 +279,7 @@ async function checkLicenseStatus() {
     return false;
   }
 
-  // 2. Active subscription check
+  // 5. Active subscription check
   if (!cachedActive) {
     if (lockOverlay) {
       lockOverlay.style.display = 'flex';
@@ -254,7 +291,7 @@ async function checkLicenseStatus() {
     return false;
   }
 
-  // 3. Expiry date check (strictly local check: is cached date in the future?)
+  // 6. Expiry date check (strictly local check: is cached date in the future?)
   const now = new Date();
   const expiryDate = new Date(cachedExpiry);
   expiryDate.setHours(23, 59, 59, 999);
@@ -335,6 +372,33 @@ window.submitLicenseLogin = async function () {
       throw new Error("Invalid license profile or missing expiry date.");
     }
 
+    // 3.1 Single-Device / Anti-Sharing Check (is_used verification)
+    const currentMachineId = (window.api && window.api.getMachineId) ? await window.api.getMachineId() : '';
+    const isAlreadyUsed = profile.is_used === true || profile.is_used === 'true';
+    const registeredDevice = profile.device_id || profile.machine_id || '';
+
+    if (isAlreadyUsed) {
+      // If registered to this specific device, allow re-login on the same PC
+      if (registeredDevice && currentMachineId && registeredDevice === currentMachineId) {
+        console.log("[License Activation] Re-login on the same registered computer approved.");
+      } else {
+        // Blocked: This account was already activated on another PC
+        throw new Error("This license key has already been activated on another computer. Each license is valid for a single device only.");
+      }
+    } else {
+      // First-time activation: mark is_used = true (and bind device_id if column exists)
+      try {
+        const patchBody = { is_used: true };
+        if (currentMachineId) {
+          patchBody.device_id = currentMachineId;
+        }
+        await supabaseFetch(`/rest/v1/profiles?id=eq.${userId}`, 'PATCH', patchBody, token);
+      } catch (patchErr) {
+        console.warn("[License Activation] Initial device patch note, falling back to is_used only:", patchErr.message);
+        await supabaseFetch(`/rest/v1/profiles?id=eq.${userId}`, 'PATCH', { is_used: true }, token);
+      }
+    }
+
     // 4. Save license state in localStorage for fast local offline validation
     localStorage.setItem('license_token', token);
     localStorage.setItem('license_email', email);
@@ -379,7 +443,8 @@ window.submitLicenseLogin = async function () {
     }
   } catch (err) {
     console.error("Activation error:", err);
-    errorMsg.textContent = "Incorrect email or password. Please try again.";
+    const msg = (err && err.message) ? err.message : "Incorrect email or password. Please try again.";
+    errorMsg.textContent = msg.includes("Invalid login credentials") ? "Incorrect email or password. Please try again." : msg;
     errorMsg.style.display = 'block';
   } finally {
     submitBtn.disabled = false;
